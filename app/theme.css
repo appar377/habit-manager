@@ -1,0 +1,76 @@
+/**
+ * デザイントークン（単一の設計ソース）
+ * 配色・余白・タイポグラフィ・角丸などをここで一元管理し、
+ * 変更するだけでアプリ全体のトーンを変えられます。
+ */
+
+:root {
+  /* ========== 色（ライト） ========== */
+  --color-bg: #ffffff;
+  --color-bg-muted: #fafafa;
+  --color-bg-subtle: #f5f5f5;
+  --color-fg: #171717;
+  --color-fg-muted: #525252;
+  --color-fg-subtle: #737373;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-primary: #171717;
+  --color-primary-contrast: #ffffff;
+  --color-accent: #3b82f6;
+  --color-accent-muted: #eff6ff;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-danger: #ef4444;
+
+  /* ========== 余白（8px ベース） ========== */
+  --space-0: 0;
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* ========== 角丸 ========== */
+  --radius-sm: 0.375rem;   /* 6px */
+  --radius-md: 0.5rem;     /* 8px */
+  --radius-lg: 0.75rem;    /* 12px */
+  --radius-xl: 1rem;      /* 16px */
+
+  /* ========== タイポグラフィ ========== */
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  --font-mono: ui-monospace, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --font-medium: 500;
+  --font-semibold: 600;
+
+  /* ========== コンポーネント用の高さ ========== */
+  --touch-min-h: 44px;
+  --input-px: 0.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0a0a0a;
+    --color-bg-muted: #171717;
+    --color-bg-subtle: #262626;
+    --color-fg: #ededed;
+    --color-fg-muted: #a3a3a3;
+    --color-fg-subtle: #737373;
+    --color-border: #404040;
+    --color-border-strong: #525252;
+    --color-primary: #ededed;
+    --color-primary-contrast: #171717;
+    --color-accent: #60a5fa;
+    --color-accent-muted: #1e3a8a;
+    --color-success: #4ade80;
+    --color-warning: #facc15;
+    --color-danger: #f87171;
+  }
+}
