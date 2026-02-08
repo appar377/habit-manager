@@ -13,15 +13,23 @@
   --color-border-strong: var(--color-border-strong);
   --color-primary: var(--color-primary);
   --color-primary-contrast: var(--color-primary-contrast);
+  --color-primary-soft: var(--color-primary-soft);
   --color-accent: var(--color-accent);
   --color-accent-muted: var(--color-accent-muted);
+  --color-success: var(--color-success);
+  --color-streak: var(--color-streak);
+  --color-streak-soft: var(--color-streak-soft);
   --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+  --shadow-card: var(--shadow-card);
+  --shadow-button: var(--shadow-button);
 }
 
 /* ========== ベース（theme の変数を使用） ========== */

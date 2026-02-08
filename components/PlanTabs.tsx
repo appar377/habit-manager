@@ -37,7 +37,7 @@ export default function PlanTabs({
       <div
         role="tablist"
         aria-label="予定の種類"
-        className="flex rounded-lg border border-neutral-200 dark:border-neutral-700 p-1 mb-4 bg-neutral-100/50 dark:bg-neutral-800/50"
+        className="flex rounded-[var(--radius-xl)] border-2 border-border p-1 mb-4 bg-bg-subtle"
       >
         {TABS.map((tab) => (
           <button
@@ -48,10 +48,10 @@ export default function PlanTabs({
             aria-controls={`plan-panel-${tab.id}`}
             id={`plan-tab-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 min-h-[40px] rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 min-h-[40px] rounded-[var(--radius-lg)] text-sm font-semibold transition-colors ${
               activeTab === tab.id
-                ? "bg-background text-foreground shadow-sm"
-                : "text-neutral-500 hover:text-foreground"
+                ? "bg-primary text-primary-contrast shadow-[var(--shadow-button)]"
+                : "text-fg-muted hover:text-foreground"
             }`}
           >
             {tab.label}

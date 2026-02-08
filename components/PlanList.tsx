@@ -175,7 +175,7 @@ export default function PlanList({ todos, completedIds, date }: Props) {
           <li
             key={todo.habitId}
             data-index={index}
-            className={`flex items-center gap-3 rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 bg-neutral-50/50 dark:bg-neutral-800/50 transition-colors ${borderClass} ${isDragging ? "opacity-50" : ""} ${isDropTarget ? "ring-2 ring-amber-400 dark:ring-amber-500 ring-offset-2 dark:ring-offset-neutral-900" : ""}`}
+            className={`flex items-center gap-3 rounded-[var(--radius-xl)] border-2 border-border p-4 bg-bg-muted shadow-[var(--shadow-card)] transition-colors ${borderClass} ${isDragging ? "opacity-50" : ""} ${isDropTarget ? "ring-2 ring-primary ring-offset-2" : ""}`}
             onDragOver={(e) => handleDragOver(e, index)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, index)}

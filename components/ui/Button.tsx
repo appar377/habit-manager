@@ -3,7 +3,7 @@
 import { type ComponentProps } from "react";
 import Pressable from "./Pressable";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "streak";
 
 type Props = ComponentProps<typeof Pressable> & {
   variant?: Variant;
@@ -12,16 +12,18 @@ type Props = ComponentProps<typeof Pressable> & {
 
 const variantClass: Record<Variant, string> = {
   primary:
-    "bg-primary text-primary-contrast font-[number:var(--font-medium)] hover:opacity-90 disabled:opacity-50",
+    "bg-primary text-primary-contrast font-semibold shadow-[var(--shadow-button)] hover:brightness-110 active:shadow-none active:translate-y-0.5 disabled:opacity-50 disabled:hover:brightness-100",
   secondary:
-    "border border-border-strong bg-background text-foreground hover:bg-bg-subtle disabled:opacity-50",
+    "border-2 border-border-strong bg-bg-muted text-foreground font-medium hover:bg-bg-subtle active:bg-bg-subtle disabled:opacity-50",
   ghost:
-    "bg-transparent text-foreground hover:bg-bg-subtle disabled:opacity-50",
+    "bg-transparent text-foreground font-medium hover:bg-bg-subtle active:bg-bg-subtle disabled:opacity-50",
   danger:
-    "border border-red-500 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50",
+    "border-2 border-danger bg-danger-soft text-danger font-semibold hover:bg-red-100 dark:hover:bg-red-950/50 disabled:opacity-50",
+  streak:
+    "bg-streak text-white font-semibold shadow-[var(--shadow-button)] hover:brightness-110 active:shadow-none active:translate-y-0.5 disabled:opacity-50",
 };
 
-/** ボタン。デザイントークンに準拠。variant で見た目を切り替え。 */
+/** ゲームっぽいボタン。primary は緑・丸み強め。 */
 export default function Button({
   variant = "primary",
   fullWidth,
@@ -31,7 +33,7 @@ export default function Button({
 }: Props) {
   return (
     <Pressable
-      className={`min-h-[var(--touch-min-h)] rounded-lg px-4 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${variantClass[variant]} ${fullWidth ? "w-full" : ""} ${className}`}
+      className={`min-h-[var(--touch-min-h)] rounded-[var(--radius-pill)] px-6 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${variantClass[variant]} ${fullWidth ? "w-full" : ""} ${className}`}
       {...rest}
     >
       {children}

@@ -290,6 +290,19 @@ export const store = {
     return this.logs.filter((l) => l.date === date);
   },
 
+  /** 今日を含む「ログが1件以上ある日」の連続日数。0＝今日はまだログなし。 */
+  getStreakDays(): number {
+    const loggedDates = new Set(this.logs.map((l) => l.date));
+    const oneDayMs = 86400000;
+    let count = 0;
+    let t = new Date(todayStr() + "T00:00:00Z").getTime();
+    while (loggedDates.has(new Date(t).toISOString().slice(0, 10))) {
+      count++;
+      t -= oneDayMs;
+    }
+    return count;
+  },
+
   addLog(input: {
     date?: string;
     habitId: string;

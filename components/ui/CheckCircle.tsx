@@ -13,10 +13,7 @@ type Props = {
   title?: string;
 };
 
-/**
- * 予定のTODO用チェック円。押下時の縮み＋スプリングで統一触感。
- * チェックマークは状態に応じて表示（Done演出は別レイヤーで行う）。
- */
+/** 予定のTODO用チェック。完了時は緑で「クリア」感。 */
 export default function CheckCircle({
   checked,
   onToggle,
@@ -32,15 +29,15 @@ export default function CheckCircle({
       aria-label={ariaLabel}
       aria-pressed={ariaPressed}
       title={title}
-      className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center text-sm select-none ${
+      className={`shrink-0 w-10 h-10 rounded-[var(--radius-pill)] border-2 flex items-center justify-center text-lg font-bold select-none transition-colors ${
         checked
-          ? "border-foreground bg-foreground/10"
-          : "border-neutral-300 dark:border-neutral-600 hover:border-neutral-400 dark:hover:border-neutral-500"
+          ? "border-primary bg-primary text-primary-contrast shadow-[var(--shadow-button)]"
+          : "border-border-strong bg-bg-muted text-fg-subtle hover:border-fg-subtle"
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {checked && (
         <motion.span
-          className="text-foreground font-medium"
+          className="text-primary-contrast"
           initial={false}
           animate={{ opacity: 1, scale: 1 }}
           transition={TAP_SPRING}

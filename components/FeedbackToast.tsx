@@ -44,7 +44,7 @@ export default function FeedbackToast({ feedback, onDone }: Props) {
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
-      <p className="py-3 px-4 rounded-xl bg-neutral-900 text-neutral-100 text-center text-sm font-medium shadow-lg">
+      <p className="py-3 px-4 rounded-[var(--radius-xl)] bg-primary text-primary-contrast text-center text-sm font-semibold shadow-[var(--shadow-card-hover)]">
         {message}
       </p>
     </div>
