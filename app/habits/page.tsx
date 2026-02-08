@@ -17,9 +17,7 @@ export default async function HabitsPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <header>
         <h1 className="text-lg font-bold text-foreground">習慣</h1>
-        <p className="text-sm text-fg-muted mt-1">
-          習慣の一覧・追加・編集。スケジュールをONにすると予定タブに表示されます。
-        </p>
+        <p className="text-sm text-fg-muted mt-0.5">一覧・追加・編集。スケジュールONで予定に表示</p>
       </header>
 
       <HabitsList habitsWithTrend={habitsWithTrend} includeArchived={includeArchived} />

@@ -166,15 +166,45 @@ export async function toggleTodoCompletionAction(
   return {};
 }
 
-/** Timeline ドラッグ/リサイズで開始・終了時刻を変更したときの保存。15分未満には縮めない。 */
+/** リスト表示で rep・時間などを追記・更新。該当日のその習慣のログを1件にまとめて保存。 */
+export async function saveLogDetailsAction(
+  habitId: string,
+  date: string,
+  details: { sets?: number; reps?: number; durationMin?: number; start?: string; end?: string }
+): Promise<{ error?: string }> {
+  const habit = store.getHabit(habitId);
+  if (!habit) return { error: "habit not found" };
+  const existing = store.listLogs(date).find((l) => l.habitId === habitId);
+  let start = details.start ?? existing?.start;
+  let end = details.end ?? existing?.end;
+  if (details.durationMin != null && details.durationMin > 0) {
+    const t = durationToStartEnd(details.durationMin);
+    start = t.start;
+    end = t.end;
+  }
+  store.deleteLogByHabitAndDate(habitId, date);
+  store.addLog({
+    date,
+    habitId,
+    sets: details.sets ?? existing?.sets,
+    reps: details.reps ?? existing?.reps,
+    start: start ?? undefined,
+    end: end ?? undefined,
+  });
+  revalidatePath("/plan");
+  revalidatePath("/review");
+  return {};
+}
+
+/** Timeline ドラッグ/リサイズ・詳細シートで開始・終了・メモを変更したときの保存。15分未満には縮めない。 */
 export async function updatePlanOverrideAction(
   date: string,
   habitId: string,
-  override: { start: string; end: string }
+  override: { start: string; end: string; memo?: string }
 ): Promise<{ error?: string }> {
   const { clampEndToMinDuration } = await import("@/lib/time");
   const normalized = clampEndToMinDuration(override.start, override.end);
-  store.setPlanOverride(date, habitId, normalized);
+  store.setPlanOverride(date, habitId, { ...normalized, memo: override.memo });
   revalidatePath("/plan");
   return {};
 }
@@ -187,9 +217,9 @@ export async function setCheatDayConfigAction(config: CheatDayConfig): Promise<v
   revalidatePath("/review");
 }
 
-/** 指定日をチートデイとして使用（ストリーク維持のためその日を達成扱いにする）。 */
-export async function useCheatDayAction(date: string): Promise<void> {
-  store.useCheatDay(date);
+/** 指定日をチートデイとして使用。note は任意（その日の報酬・過ごし方のメモ）。 */
+export async function useCheatDayAction(date: string, note?: string): Promise<void> {
+  store.useCheatDay(date, note);
   revalidatePath("/capture");
   revalidatePath("/plan");
   revalidatePath("/review");

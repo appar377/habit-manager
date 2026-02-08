@@ -27,9 +27,15 @@ function setLastHabitId(id: string) {
 export default function LogForm({
   habits,
   defaultHabitId,
+  initialDate,
+  onSuccess,
 }: {
   habits: Habit[];
   defaultHabitId: string;
+  /** 予定ページなどから渡す。その日付で記録を追加するとき用。 */
+  initialDate?: string;
+  /** 記録送信成功後に呼ばれる（シートを閉じるなど）。 */
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -44,8 +50,8 @@ export default function LogForm({
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
   const [durationMin, setDurationMin] = useState("");
-  const [showDate, setShowDate] = useState(false);
-  const [date, setDate] = useState(todayStr());
+  const initial = initialDate ?? todayStr();
+  const [date] = useState(initial);
   const [toastFeedback, setToastFeedback] = useState<"up" | "down" | "same" | null>(null);
 
   const habit = habits.find((h) => h.id === habitId);
@@ -56,7 +62,7 @@ export default function LogForm({
     if (!habitId) return;
     startTransition(async () => {
       const result = await addLogAction({
-        date: showDate ? date : todayStr(),
+        date,
         habitId,
         sets: sets ? Number(sets) : undefined,
         reps: reps ? Number(reps) : undefined,
@@ -68,6 +74,7 @@ export default function LogForm({
       setDurationMin("");
       if (result?.feedback) setToastFeedback(result.feedback);
       router.refresh();
+      onSuccess?.();
     });
   }
 
@@ -164,25 +171,6 @@ export default function LogForm({
       >
         {isPending ? "記録中…" : "記録する"}
       </Pressable>
-
-      {/* 別の日：折りたたみ・普段は見せない */}
-      <div className="flex items-center gap-2">
-        <Pressable
-          onClick={() => setShowDate(!showDate)}
-          className="text-xs text-neutral-400 underline"
-        >
-          {showDate ? "今日で記録" : "別の日で記録"}
-        </Pressable>
-        {showDate && (
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="py-1.5 px-2 rounded-lg border border-neutral-200 dark:border-neutral-600 text-sm"
-            aria-label="日付"
-          />
-        )}
-      </div>
     </form>
       <FeedbackToast feedback={toastFeedback} onDone={() => setToastFeedback(null)} />
     </>

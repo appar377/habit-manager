@@ -150,6 +150,88 @@ a {
 .plan-timeline-wrapper .fc .fc-timegrid-event-harness {
   margin: 0 var(--space-2);
 }
+
+/* 時間指定タブ: 左に丸チェック（リストのCheckCircleと統一）、右に時間・タイトル。はみ出し防止。 */
+.plan-timeline-wrapper .fc-event {
+  min-height: 52px; /* 40pxチェック + padding で中身がはみ出さないように */
+  min-width: 160px; /* 複数並んだときもチェックボックスが切れないように */
+}
+.plan-timeline-wrapper .fc-event .fc-event-main {
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  min-height: 100%;
+}
+.plan-timeline-wrapper .fc-event-inner-custom {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  gap: 8px;
+  padding: 6px 8px;
+  overflow: hidden;
+}
+.plan-timeline-wrapper .fc-event-check {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-border-strong);
+  background: var(--color-bg-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: transparent;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  box-sizing: border-box;
+}
+.plan-timeline-wrapper .fc-event-check:hover {
+  border-color: var(--color-fg-subtle);
+}
+.plan-timeline-wrapper .fc-event-check-done {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  box-shadow: var(--shadow-button);
+}
+.plan-timeline-wrapper .fc-event-check-done:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.plan-timeline-wrapper .fc-event-body {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+}
+.plan-timeline-wrapper .fc-event-time {
+  font-size: 10px;
+  color: var(--color-fg-muted);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-timeline-wrapper .fc-event-title {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
 .plan-timeline-wrapper .fc .fc-timegrid-slot-label-frame {
   text-align: right;
   padding-right: var(--space-2);

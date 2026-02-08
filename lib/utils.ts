@@ -6,6 +6,76 @@ export function todayStr() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** YYYY-MM-DD をパース。無効なら null。 */
+export function parseDate(dateStr: string): Date | null {
+  if (!ISO_DATE.test(dateStr)) return null;
+  const d = new Date(dateStr + "T12:00:00Z");
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** 日付に n 日を加算した YYYY-MM-DD。 */
+export function addDays(dateStr: string, delta: number): string {
+  const d = parseDate(dateStr);
+  if (!d) return dateStr;
+  d.setUTCDate(d.getUTCDate() + delta);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** 日付に n ヶ月を加算した YYYY-MM-DD。日が存在しない月は月末にする。 */
+export function addMonths(dateStr: string, delta: number): string {
+  const d = parseDate(dateStr);
+  if (!d) return dateStr;
+  const day = d.getUTCDate();
+  d.setUTCMonth(d.getUTCMonth() + delta);
+  const maxDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, maxDay));
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+/** 表示用: 2月1日 または 2025年2月1日（年が違う場合） */
+export function formatDateJa(dateStr: string, baseYear?: number): string {
+  const d = parseDate(dateStr);
+  if (!d) return dateStr;
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+  const currentYear = baseYear ?? new Date().getFullYear();
+  if (y === currentYear) return `${m}月${day}日`;
+  return `${y}年${m}月${day}日`;
+}
+
+/** 指定日を含む週の日曜〜土曜の YYYY-MM-DD を返す（日曜始まり）。 */
+export function getWeekDates(dateStr: string): string[] {
+  const d = parseDate(dateStr);
+  if (!d) return [];
+  const day = d.getUTCDay();
+  const start = addDays(dateStr, -day);
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
+
+/** 指定年月のカレンダー用セル（空きは null、日付は YYYY-MM-DD）。日曜始まり。 */
+export function getMonthCells(year: number, month: number): (string | null)[] {
+  const first = new Date(Date.UTC(year, month - 1, 1));
+  const last = new Date(Date.UTC(year, month, 0));
+  const startPad = first.getUTCDay();
+  const daysInMonth = last.getUTCDate();
+  const result: (string | null)[] = [];
+  for (let i = 0; i < startPad; i++) result.push(null);
+  const mm = String(month).padStart(2, "0");
+  for (let d = 1; d <= daysInMonth; d++) {
+    result.push(`${year}-${mm}-${String(d).padStart(2, "0")}`);
+  }
+  return result;
+}
+
 /** 今週合計 vs 前週合計でトレンド（良し悪しは評価しない） */
 export function getTrend(
   thisPeriod: number,

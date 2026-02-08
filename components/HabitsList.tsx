@@ -61,7 +61,7 @@ export default function HabitsList({ habitsWithTrend, includeArchived }: Props) 
 
       {/* アクティブな習慣一覧 */}
       <section>
-        <h2 className="text-xs font-semibold text-fg-muted mb-2 uppercase tracking-wide">
+        <h2 className="text-sm font-bold text-foreground mb-2">
           一覧 {activeHabits.length > 0 && `（${activeHabits.length}件）`}
         </h2>
         {activeHabits.length > 0 ? (
@@ -90,8 +90,8 @@ export default function HabitsList({ habitsWithTrend, includeArchived }: Props) 
       {/* アーカイブ済み（表示時のみ） */}
       {includeArchived && archivedHabits.length > 0 && (
         <section>
-          <h2 className="text-xs font-semibold text-fg-muted mb-2 uppercase tracking-wide">
-            アーカイブ済み（{archivedHabits.length}件）
+          <h2 className="text-sm font-bold text-foreground mb-2">
+            アーカイブ（{archivedHabits.length}件）
           </h2>
           <ul className="space-y-3 list-none p-0 m-0" role="list">
             {archivedHabits.map(({ habit, trend }) => (

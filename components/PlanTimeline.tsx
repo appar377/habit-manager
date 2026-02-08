@@ -1,13 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import type { EventDropArg, EventClickArg, EventInput } from "@fullcalendar/core";
 import type { EventResizeDoneArg } from "@fullcalendar/interaction";
 import { toggleTodoCompletionAction, updatePlanOverrideAction } from "@/lib/actions";
+import type { Habit } from "@/lib/store";
+import PlanEventDetailSheet from "./PlanEventDetailSheet";
 
 const RANGE_START = "06:00:00";
 const RANGE_END = "24:00:00";
@@ -22,6 +24,14 @@ function dateToTimeStr(d: Date): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 type TodoItem = {
   habitId: string;
   title: string;
@@ -29,15 +39,21 @@ type TodoItem = {
   end: string;
 };
 
+export type PlanOverrideItem = { start: string; end: string; memo?: string };
+
 type Props = {
   todos: TodoItem[];
   completedIds: Set<string>;
   date: string;
+  habits?: Habit[];
+  /** その日の予定上書き（habitId → 時間・メモ）。詳細シートの初期値用。 */
+  overridesForDate?: Record<string, PlanOverrideItem>;
 };
 
-export default function PlanTimeline({ todos, completedIds, date }: Props) {
+export default function PlanTimeline({ todos, completedIds, date, habits = [], overridesForDate = {} }: Props) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const [detailState, setDetailState] = useState<{ habitId: string; start: string; end: string } | null>(null);
 
   const events: EventInput[] = todos.map((t) => ({
     id: t.habitId,
@@ -86,16 +102,23 @@ export default function PlanTimeline({ todos, completedIds, date }: Props) {
 
   const handleEventClick = (info: EventClickArg) => {
     info.jsEvent.preventDefault();
+    info.jsEvent.stopPropagation();
+    const target = info.jsEvent.target as HTMLElement;
     const habitId = info.event.extendedProps.habitId as string;
     const completed = info.event.extendedProps.completed as boolean;
     const start = info.event.start;
     const end = info.event.end;
     if (!start || !end) return;
     const timeRange = { start: dateToTimeStr(start), end: dateToTimeStr(end) };
-    startTransition(async () => {
-      await toggleTodoCompletionAction(habitId, date, !completed, timeRange);
-      router.refresh();
-    });
+
+    if (target.closest(".fc-event-check")) {
+      startTransition(async () => {
+        await toggleTodoCompletionAction(habitId, date, !completed, timeRange);
+        router.refresh();
+      });
+    } else {
+      setDetailState({ habitId, start: timeRange.start, end: timeRange.end });
+    }
   };
 
   if (todos.length === 0) {
@@ -107,44 +130,77 @@ export default function PlanTimeline({ todos, completedIds, date }: Props) {
   }
 
   return (
-    <div className="plan-timeline-wrapper min-w-0 -mx-4 md:-mx-0 rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-y-auto overflow-x-hidden max-h-[75dvh] md:max-h-[70vh] min-h-[280px] overscroll-behavior-y-contain">
-      <FullCalendar
-        plugins={[interactionPlugin, timeGridPlugin]}
-        initialView="timeGridDay"
-        initialDate={date}
-        slotMinTime={RANGE_START}
-        slotMaxTime={RANGE_END}
-        slotDuration="00:15:00"
-        slotLabelInterval={{ minutes: 30 }}
-        allDaySlot={false}
-        headerToolbar={false}
-        events={events}
-        editable={true}
-        eventDurationEditable={true}
-        eventStartEditable={true}
-        eventDrop={handleEventDrop}
-        eventResize={handleEventResize}
-        eventClick={handleEventClick}
-        eventDisplay="block"
-        height={TIMELINE_CONTENT_HEIGHT_PX}
-        dayMaxEventRows={false}
-        nowIndicator={false}
-        locale="ja"
-        firstDay={0}
-        slotLabelFormat={{
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }}
-        eventTimeFormat={{
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }}
-        eventClassNames={(arg) =>
-          arg.event.extendedProps.completed ? "fc-event-completed" : ""
-        }
-      />
-    </div>
+    <>
+      <div className="plan-timeline-wrapper min-w-0 -mx-4 md:-mx-0 rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-y-auto overflow-x-auto max-h-[75dvh] md:max-h-[70vh] min-h-[280px] overscroll-behavior-y-contain">
+        <FullCalendar
+          plugins={[interactionPlugin, timeGridPlugin]}
+          initialView="timeGridDay"
+          initialDate={date}
+          slotMinTime={RANGE_START}
+          slotMaxTime={RANGE_END}
+          slotDuration="00:15:00"
+          slotLabelInterval={{ minutes: 30 }}
+          allDaySlot={false}
+          headerToolbar={false}
+          events={events}
+          editable={true}
+          eventDurationEditable={true}
+          eventStartEditable={true}
+          eventDrop={handleEventDrop}
+          eventResize={handleEventResize}
+          eventClick={handleEventClick}
+          eventContent={(arg) => {
+            const completed = arg.event.extendedProps.completed as boolean;
+            const start = arg.event.extendedProps.start as string;
+            const end = arg.event.extendedProps.end as string;
+            const title = arg.event.title;
+            const timeStr = `${start} – ${end}`;
+            return {
+              html: `<div class="fc-event-inner-custom">
+                <button type="button" class="fc-event-check ${completed ? "fc-event-check-done" : ""}" aria-label="${completed ? "完了を解除" : "完了にする"}">
+                  ${completed ? "✓" : ""}
+                </button>
+                <div class="fc-event-body">
+                  <div class="fc-event-time">${escapeHtml(timeStr)}</div>
+                  <div class="fc-event-title">${escapeHtml(title)}</div>
+                </div>
+              </div>`,
+            };
+          }}
+          eventDisplay="block"
+          height={TIMELINE_CONTENT_HEIGHT_PX}
+          dayMaxEventRows={false}
+          nowIndicator={false}
+          locale="ja"
+          firstDay={0}
+          slotLabelFormat={{
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }}
+          eventTimeFormat={{
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }}
+          eventClassNames={(arg) =>
+            arg.event.extendedProps.completed ? "fc-event-completed" : ""
+          }
+        />
+      </div>
+
+      {detailState && habits?.length > 0 && (
+        <PlanEventDetailSheet
+          open={true}
+          onClose={() => setDetailState(null)}
+          habits={habits}
+          habitId={detailState.habitId}
+          date={date}
+          initialStart={detailState.start}
+          initialEnd={detailState.end}
+          initialMemo={overridesForDate[detailState.habitId]?.memo}
+        />
+      )}
+    </>
   );
 }

@@ -40,6 +40,13 @@ export type Log = {
   volume: number;      // derived sets*reps or 0
 };
 
+/** チートデイを使った日、アプリ上でどう扱うか。ユーザーが選択。 */
+export type CheatDayEffect =
+  | "both"        // 記録・達成どちらのストリークもその日を達成扱い
+  | "log_only"    // 記録ストリークのみ達成扱い（予定はやらなくてOK）
+  | "plan_only"   // 達成ストリークのみ達成扱い（ログがなくてもOK）
+  | "record_only"; // ストリークには影響せず、取得した事実だけ記録
+
 /** チートデイ設定。null は未選択（初回オンボーディング用）。 */
 export type CheatDayConfig = {
   cycleDays: number;
@@ -48,6 +55,15 @@ export type CheatDayConfig = {
   label: string;
   /** 表示用説明 */
   description: string;
+  /** チートデイを使った日にアプリでどう反映するか。未設定時は both。 */
+  effect?: CheatDayEffect;
+};
+
+/** チートデイを使用した1件。報酬の内容はユーザーごとなのでメモで任意記録。 */
+export type CheatDayUsage = {
+  date: string; // YYYY-MM-DD
+  /** 任意。その日何をしたか・何を報酬にしたか（例: "好きなものを食べた"） */
+  note?: string;
 };
 
 /** 研究に基づいたチートデイ周期プリセット（計画的な逸脱はアドヒアランス向上と報告）。 */
@@ -268,7 +284,7 @@ export const store = {
   ] as Habit[],
   logs: buildDummyLogs(),
 
-  /** 日付 → habitId → { start, end }。Timeline ドラッグ/リサイズで上書き。 */
+  /** 日付 → habitId → { start, end, memo? }。Timeline ドラッグ/リサイズ・詳細シートで上書き。 */
   planOverrides: (() => {
     const t = new Date();
     const y = t.getFullYear();
@@ -280,16 +296,16 @@ export const store = {
         ht1: { start: "06:15", end: "06:45" },
         ht3: { start: "19:30", end: "20:30" },
       },
-    } as Record<string, Record<string, { start: string; end: string }>>;
+    } as Record<string, Record<string, { start: string; end: string; memo?: string }>>;
   })(),
 
   /** チートデイ設定。ダミーでは「週1回（標準）」を選択済み。 */
-  cheatDayConfig: CHEAT_DAY_PRESETS[1] as CheatDayConfig,
-  /** チートデイを使用した日付。直近周期外の日を1件（解禁状態が確認しやすいよう）。 */
+  cheatDayConfig: { ...CHEAT_DAY_PRESETS[1], effect: "both" as CheatDayEffect },
+  /** チートデイを使用した日（日付＋任意メモ）。直近周期外を1件。 */
   cheatDaysUsed: (() => {
     const t = new Date();
     t.setDate(t.getDate() - 8);
-    return [t.toISOString().slice(0, 10)];
+    return [{ date: t.toISOString().slice(0, 10), note: "お休みの日" }] as CheatDayUsage[];
   })(),
 
   /** ランキング用：ダミーで2人登録。 */
@@ -401,14 +417,19 @@ export const store = {
     return getTodayTodosFromSchedule(date, this.listHabits(false), { timeSpecified: false });
   },
 
-  /** Timeline で開始/終了を変更したときの上書き保存（メモリのみ）。 */
+  /** Timeline で開始/終了・メモを変更したときの上書き保存（メモリのみ）。 */
   setPlanOverride(
     date: string,
     habitId: string,
-    override: { start: string; end: string }
+    override: { start: string; end: string; memo?: string }
   ): void {
     if (!this.planOverrides[date]) this.planOverrides[date] = {};
     this.planOverrides[date][habitId] = { ...override };
+  },
+
+  /** 指定日の習慣の予定上書きを取得（時間・メモ）。 */
+  getPlanOverride(date: string, habitId: string): { start: string; end: string; memo?: string } | undefined {
+    return this.planOverrides[date]?.[habitId];
   },
 
   /** 論理削除。Delete の代わり。 */
@@ -435,10 +456,46 @@ export const store = {
     return this.logs.filter((l) => l.date === date);
   },
 
-  /** 今日を含む「ログが1件以上ある日」またはチートデイ使用日の連続日数。0＝今日はまだログなしかつチートデイ未使用。 */
+  /** effect に応じて記録ストリークでカウントするチートデイの日付集合。 */
+  _cheatDatesForLog(): Set<string> {
+    const effect = this.cheatDayConfig?.effect ?? "both";
+    if (effect === "plan_only" || effect === "record_only") return new Set();
+    const usages = this.cheatDaysUsed.map((u) => (typeof u === "string" ? { date: u } : u));
+    return new Set(usages.map((u) => u.date));
+  },
+
+  /** effect に応じて達成ストリークでカウントするチートデイの日付集合。 */
+  _cheatDatesForPlan(): Set<string> {
+    const effect = this.cheatDayConfig?.effect ?? "both";
+    if (effect === "log_only" || effect === "record_only") return new Set();
+    const usages = this.cheatDaysUsed.map((u) => (typeof u === "string" ? { date: u } : u));
+    return new Set(usages.map((u) => u.date));
+  },
+
+  /** 直近 days 日分の日付ごと「記録あり」「予定達成」フラグ。ミニカレンダー用。古い日付から順。 */
+  getActivityForLastDays(days: number): { date: string; logged: boolean; achieved: boolean }[] {
+    const loggedDates = new Set(this.logs.map((l) => l.date));
+    const cheatLog = this._cheatDatesForLog();
+    const cheatPlan = this._cheatDatesForPlan();
+    const oneDayMs = 86400000;
+    const today = todayStr();
+    const result: { date: string; logged: boolean; achieved: boolean }[] = [];
+    let t = new Date(today + "T00:00:00Z").getTime() - (days - 1) * oneDayMs;
+    for (let i = 0; i < days; i++) {
+      const dateStr = new Date(t).toISOString().slice(0, 10);
+      const logged = loggedDates.has(dateStr) || cheatLog.has(dateStr);
+      const summary = this.getDayPlanSummary(dateStr);
+      const achieved = summary.scheduled === 0 ? false : summary.rate >= 1 || cheatPlan.has(dateStr);
+      result.push({ date: dateStr, logged, achieved });
+      t += oneDayMs;
+    }
+    return result;
+  },
+
+  /** 今日を含む「ログが1件以上ある日」またはチートデイ（記録カウント）の連続日数。 */
   getStreakDays(): number {
     const loggedDates = new Set(this.logs.map((l) => l.date));
-    const cheatSet = new Set(this.cheatDaysUsed);
+    const cheatSet = this._cheatDatesForLog();
     const oneDayMs = 86400000;
     let count = 0;
     let t = new Date(todayStr() + "T00:00:00Z").getTime();
@@ -451,11 +508,11 @@ export const store = {
 
   /**
    * 七転び八起き：ストリークが途切れたあと「また記録を再開した」回数。
-   * 前日に記録がなく、その日に記録（またはチートデイ）があった日を「立ち上がり」として数える。
+   * 前日に記録がなく、その日に記録（またはチートデイ・記録カウント）があった日を「立ち上がり」として数える。
    */
   getLogComebackCount(): number {
     const loggedDates = new Set(this.logs.map((l) => l.date));
-    const cheatSet = new Set(this.cheatDaysUsed);
+    const cheatSet = this._cheatDatesForLog();
     const activeDates = new Set<string>([...loggedDates, ...cheatSet]);
     if (activeDates.size === 0) return 0;
     const sorted = [...activeDates].sort();
@@ -487,9 +544,9 @@ export const store = {
     return { scheduled, completed, rate };
   },
 
-  /** 予定100%達成の連続日数（今日から遡る）。予定が0件の日はスキップ。チートデイ使用日は達成扱い。 */
+  /** 予定100%達成の連続日数（今日から遡る）。予定が0件の日はスキップ。チートデイ（達成カウント）使用日は達成扱い。 */
   getPlanStreakDays(): number {
-    const cheatSet = new Set(this.cheatDaysUsed);
+    const cheatSet = this._cheatDatesForPlan();
     const oneDayMs = 86400000;
     let count = 0;
     let t = new Date(todayStr() + "T00:00:00Z").getTime();
@@ -570,7 +627,8 @@ export const store = {
     }
     const cycleAchievementRate = daysWithSchedule > 0 ? sumRate / daysWithSchedule : 0;
     const required = cfg.requiredAchievementPercent / 100;
-    const usedInPeriod = this.cheatDaysUsed.some((d) => d >= periodStart && d <= periodEnd);
+    const usages = this.cheatDaysUsed.map((u) => (typeof u === "string" ? u : u.date));
+    const usedInPeriod = usages.some((d) => d >= periodStart && d <= periodEnd);
     const unlocked = cycleAchievementRate >= required && !usedInPeriod;
     return {
       unlocked,
@@ -587,9 +645,17 @@ export const store = {
     this.cheatDayConfig = config;
   },
 
-  /** 指定日をチートデイとして使用（その日はストリークで達成扱い）。 */
-  useCheatDay(date: string): void {
-    if (!this.cheatDaysUsed.includes(date)) this.cheatDaysUsed.push(date);
+  /** 指定日をチートデイとして使用。note は任意（その日の報酬・過ごし方のメモ）。 */
+  useCheatDay(date: string, note?: string): void {
+    const usages = this.cheatDaysUsed.map((u) => (typeof u === "string" ? { date: u } : u));
+    if (usages.some((u) => u.date === date)) return;
+    this.cheatDaysUsed.push({ date, note });
+  },
+
+  /** チートデイ使用履歴（日付順・古い順）。メモ付き。 */
+  listCheatDaysUsed(): CheatDayUsage[] {
+    const usages = this.cheatDaysUsed.map((u) => (typeof u === "string" ? { date: u } : u));
+    return [...usages].sort((a, b) => a.date.localeCompare(b.date));
   },
 
   getCheatDayPresets(): CheatDayConfig[] {

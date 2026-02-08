@@ -15,10 +15,10 @@ type Props = {
 };
 
 const METRICS: { key: keyof MyStats; label: string; format: (v: number) => string }[] = [
-  { key: "logStreak", label: "記録ストリーク", format: (v) => `${v} 日` },
-  { key: "planStreak", label: "達成ストリーク", format: (v) => `${v} 日` },
-  { key: "comebackCount", label: "立ち上がり回数", format: (v) => `${v} 回` },
-  { key: "achievementRate", label: "直近7日達成率", format: (v) => `${Math.round(v * 100)}%` },
+  { key: "logStreak", label: "記録", format: (v) => `${v}日` },
+  { key: "planStreak", label: "達成", format: (v) => `${v}日` },
+  { key: "comebackCount", label: "立ち上がり", format: (v) => `${v}回` },
+  { key: "achievementRate", label: "達成率", format: (v) => `${Math.round(v * 100)}%` },
 ];
 
 function getValue(stats: MyStats, key: keyof MyStats): number {
@@ -48,11 +48,9 @@ function getRankIndices(myStats: MyStats, rivals: Rival[], key: keyof MyStats): 
 export default function RankingComparison({ myStats, rivals }: Props) {
   if (rivals.length === 0) {
     return (
-      <section className="rounded-[var(--radius-xl)] border-2 border-border bg-bg-muted p-4 shadow-[var(--shadow-card)]">
-        <h2 className="text-xs font-semibold text-fg-muted mb-3">比較</h2>
-        <p className="text-sm text-fg-muted">
-          下のフォームからライバルを追加すると、あなたとの比較表がここに表示されます。
-        </p>
+      <section className="rounded-[var(--radius-xl)] border border-border bg-bg-subtle p-6 text-center">
+        <h2 className="sr-only">比較</h2>
+        <p className="text-sm text-fg-muted">ライバルを追加すると比較表が表示されます</p>
       </section>
     );
   }
@@ -60,8 +58,8 @@ export default function RankingComparison({ myStats, rivals }: Props) {
   const participants = [{ name: "あなた", isYou: true }, ...rivals.map((r) => ({ name: r.name, isYou: false }))];
 
   return (
-    <section className="rounded-[var(--radius-xl)] border-2 border-border bg-bg-muted p-4 shadow-[var(--shadow-card)] overflow-x-auto">
-      <h2 className="text-xs font-semibold text-fg-muted mb-3">比較</h2>
+      <section className="rounded-[var(--radius-xl)] border border-border bg-bg-muted p-4 overflow-x-auto">
+      <h2 className="sr-only">比較</h2>
       <table className="w-full text-sm border-collapse min-w-[320px]">
         <thead>
           <tr>

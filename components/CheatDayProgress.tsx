@@ -1,10 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { useCheatDayAction } from "@/lib/actions";
 import { todayStr } from "@/lib/utils";
+import type { CheatDayUsage } from "@/lib/store";
 import Button from "./ui/Button";
+import Input from "./ui/Input";
 
 type Status = {
   unlocked: boolean;
@@ -27,6 +29,8 @@ type Props = {
   status: Status;
   /** この周期の日別達成率（左が古い = periodStart 側）。予定0の日は rate=0 で含める。 */
   dailyRatesInCycle: DayItem[];
+  /** 過去のチートデイ使用履歴（メモ付き）。 */
+  history?: CheatDayUsage[];
 };
 
 function formatShort(date: string) {
@@ -35,8 +39,14 @@ function formatShort(date: string) {
 }
 
 /** 分析用：チートデイ解禁まであとどれだけか、プログレスバーと日別バーでやる気を出す。 */
-export default function CheatDayProgress({ status, dailyRatesInCycle }: Props) {
+function formatDate(date: string) {
+  const [y, m, d] = date.split("-");
+  return `${y}/${Number(m)}/${Number(d)}`;
+}
+
+export default function CheatDayProgress({ status, dailyRatesInCycle, history = [] }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [note, setNote] = useState("");
   const today = todayStr();
   const currentPercent = Math.round(status.cycleAchievementRate * 100);
   const gap = status.requiredPercent - currentPercent;
@@ -44,7 +54,8 @@ export default function CheatDayProgress({ status, dailyRatesInCycle }: Props) {
 
   function useCheatDay() {
     startTransition(async () => {
-      await useCheatDayAction(today);
+      await useCheatDayAction(today, note.trim() || undefined);
+      setNote("");
     });
   }
 
@@ -53,9 +64,7 @@ export default function CheatDayProgress({ status, dailyRatesInCycle }: Props) {
       className="rounded-[var(--radius-xl)] border-2 border-border bg-bg-muted p-4 shadow-[var(--shadow-card)]"
       aria-labelledby="cheat-day-progress-title"
     >
-      <h2 id="cheat-day-progress-title" className="text-xs font-semibold text-fg-muted mb-3">
-        チートデイまで
-      </h2>
+      <h2 id="cheat-day-progress-title" className="sr-only">チートデイまで</h2>
 
       {status.usedInPeriod ? (
         <p className="text-sm text-fg-muted">
@@ -68,11 +77,17 @@ export default function CheatDayProgress({ status, dailyRatesInCycle }: Props) {
             直近の達成率 <strong className="text-foreground">{currentPercent}%</strong>
             （目標 {status.requiredPercent}%）をクリアしました。
           </p>
-          <Button
-            variant="primary"
-            onClick={useCheatDay}
-            disabled={isPending}
-          >
+          <div>
+            <label className="block text-xs text-fg-muted mb-1">この日のメモ（任意）</label>
+            <Input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="例: 好きなものを食べた"
+              className="text-sm"
+            />
+          </div>
+          <Button variant="primary" onClick={useCheatDay} disabled={isPending}>
             {isPending ? "取得中…" : "今日をチートデイにする"}
           </Button>
         </div>
@@ -87,13 +102,11 @@ export default function CheatDayProgress({ status, dailyRatesInCycle }: Props) {
             )}
           </p>
 
-          {/* メインプログレスバー（現在の達成率。目標は右端の目盛で示す） */}
+          {/* プログレスバー */}
           <div>
             <div className="flex justify-between text-xs text-fg-muted mb-1">
-              <span>直近の達成率</span>
-              <span className="tabular-nums font-medium text-foreground">
-                {currentPercent}% <span className="text-fg-muted">/ 目標 {status.requiredPercent}%</span>
-              </span>
+              <span>達成率</span>
+              <span className="tabular-nums">{currentPercent}% / 目標 {status.requiredPercent}%</span>
             </div>
             <div className="relative h-5 rounded-full bg-bg-subtle overflow-visible">
               <motion.div
@@ -102,31 +115,24 @@ export default function CheatDayProgress({ status, dailyRatesInCycle }: Props) {
                 animate={{ width: `${Math.min(100, currentPercent)}%` }}
                 transition={{ type: "spring", stiffness: 300, damping: 28 }}
               />
-              {/* 目標の目盛（達成率100%を幅として、requiredPercent の位置に線） */}
               {currentPercent < status.requiredPercent && status.requiredPercent <= 100 && (
                 <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-streak rounded-full shadow-sm"
+                  className="absolute top-0 bottom-0 w-0.5 bg-streak rounded-full"
                   style={{ left: `calc(${status.requiredPercent}% - 2px)` }}
                   title={`目標 ${status.requiredPercent}%`}
                   aria-hidden
                 />
               )}
             </div>
-            <p className="text-[10px] text-fg-muted mt-0.5 text-right">
-              あと {gap}% で解禁
-            </p>
           </div>
 
           <div className="sr-only">
             達成率 {currentPercent}%、目標 {status.requiredPercent}%。あと {gap}% で解禁。
           </div>
 
-          {/* 周期の日別バー（左が古い） */}
           {dailyRatesInCycle.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-fg-muted mb-2">
-                この周期の日別（{status.periodStart} ～ {status.periodEnd}）
-              </p>
+              <p className="text-xs text-fg-muted mb-1.5">周期の日別</p>
               <div className="flex gap-1">
                 {dailyRatesInCycle.map((d) => (
                   <div
@@ -150,10 +156,22 @@ export default function CheatDayProgress({ status, dailyRatesInCycle }: Props) {
           )}
 
           {isClose && (
-            <p className="text-xs text-primary font-medium">
-              もう少し！ あと {gap}% 達成率を上げれば解禁です。
-            </p>
+            <p className="text-xs text-primary font-medium">あと {gap}% で解禁です</p>
           )}
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-border">
+          <p className="text-xs text-fg-muted mb-1.5">過去のチートデイ</p>
+          <ul className="space-y-1 text-sm">
+            {[...history].reverse().slice(0, 5).map((u) => (
+              <li key={u.date} className="text-foreground">
+                <span className="tabular-nums">{formatDate(u.date)}</span>
+                {u.note && <span className="text-fg-muted ml-2">— {u.note}</span>}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </section>
