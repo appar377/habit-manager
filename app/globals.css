@@ -8,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -19,8 +19,125 @@
   }
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100dvh;
+}
+
+/* 片手操作：タップ遅延を抑える */
+button,
+a {
+  touch-action: manipulation;
+}
+
+@supports (min-height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+}
+
+/* ナビ高さ（layout の main 余白計算用） */
+:root {
+  --nav-height: 56px;
+}
+
+/* FullCalendar 予定タイムライン：ラッパーでスクロール＋配色 */
+.plan-timeline-wrapper .fc {
+  --fc-border-color: oklch(0.92 0.01 250);
+  --fc-page-bg-color: oklch(0.98 0.005 250);
+  --fc-neutral-bg-color: oklch(0.97 0.008 250);
+  --fc-event-bg-color: oklch(0.88 0.06 250);
+  --fc-event-border-color: oklch(0.78 0.08 250);
+  --fc-event-text-color: oklch(0.28 0.05 250);
+  --fc-today-bg-color: transparent;
+  --fc-small-font-size: 0.75rem;
+}
+.plan-timeline-wrapper .fc .fc-scrollgrid {
+  border-radius: 0.75rem;
+}
+.plan-timeline-wrapper .fc .fc-timegrid-slot {
+  height: 1.5rem;
+}
+.plan-timeline-wrapper .fc .fc-timegrid-slot-label {
+  font-size: 0.625rem;
+  padding-top: 0.25rem;
+  color: oklch(0.45 0.02 250);
+  font-weight: 500;
+}
+.plan-timeline-wrapper .fc .fc-timegrid-axis {
+  background: oklch(0.97 0.008 250);
+}
+.plan-timeline-wrapper .fc .fc-timegrid-col {
+  background: oklch(0.995 0.002 250);
+}
+.plan-timeline-wrapper .fc .fc-event {
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.875rem;
+  border-width: 1px;
+  background: oklch(0.88 0.06 250);
+  border-color: oklch(0.78 0.08 250);
+  color: oklch(0.28 0.05 250);
+}
+.plan-timeline-wrapper .fc .fc-event:hover {
+  background: oklch(0.85 0.07 250);
+  border-color: oklch(0.72 0.09 250);
+}
+.plan-timeline-wrapper .fc-event-completed .fc-event-main {
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+.plan-timeline-wrapper .fc-event-completed .fc-event {
+  background: oklch(0.92 0.02 150);
+  border-color: oklch(0.85 0.03 150);
+  color: oklch(0.4 0.04 150);
+}
+.plan-timeline-wrapper .fc .fc-timegrid-event-harness {
+  margin: 0 4px;
+}
+.plan-timeline-wrapper .fc .fc-timegrid-slot-label-frame {
+  text-align: right;
+  padding-right: 0.5rem;
+}
+
+/* ダークモード */
+@media (prefers-color-scheme: dark) {
+  .plan-timeline-wrapper .fc {
+    --fc-border-color: oklch(0.35 0.02 250);
+    --fc-page-bg-color: oklch(0.18 0.02 250);
+    --fc-neutral-bg-color: oklch(0.22 0.02 250);
+    --fc-event-bg-color: oklch(0.38 0.08 250);
+    --fc-event-border-color: oklch(0.48 0.06 250);
+    --fc-event-text-color: oklch(0.92 0.02 250);
+  }
+  .plan-timeline-wrapper .fc .fc-timegrid-slot-label {
+    color: oklch(0.65 0.02 250);
+  }
+  .plan-timeline-wrapper .fc .fc-timegrid-axis {
+    background: oklch(0.22 0.02 250);
+  }
+  .plan-timeline-wrapper .fc .fc-timegrid-col {
+    background: oklch(0.18 0.02 250);
+  }
+  .plan-timeline-wrapper .fc .fc-event {
+    background: oklch(0.38 0.08 250);
+    border-color: oklch(0.48 0.06 250);
+    color: oklch(0.92 0.02 250);
+  }
+  .plan-timeline-wrapper .fc .fc-event:hover {
+    background: oklch(0.42 0.08 250);
+    border-color: oklch(0.52 0.06 250);
+  }
+  .plan-timeline-wrapper .fc-event-completed .fc-event {
+    background: oklch(0.32 0.05 150);
+    border-color: oklch(0.38 0.05 150);
+    color: oklch(0.72 0.04 150);
+  }
 }
