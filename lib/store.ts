@@ -1,6 +1,6 @@
 // lib/store.ts
 import { getFeedbackResult } from "@/lib/feedback";
-import { getTodayTodos as getTodayTodosFromSchedule } from "@/lib/schedule";
+import { getTodayTodos as getTodayTodosFromSchedule, isDateInSchedule } from "@/lib/schedule";
 
 export type HabitType = "exercise" | "study";
 
@@ -301,6 +301,67 @@ export const store = {
       t -= oneDayMs;
     }
     return count;
+  },
+
+  /** 指定日の予定達成サマリ（スケジュール上のTODO数と、ログで完了した数）。 */
+  getDayPlanSummary(date: string): { scheduled: number; completed: number; rate: number } {
+    const habits = this.listHabits(false);
+    const todos = getTodayTodosFromSchedule(date, habits, {});
+    const scheduled = todos.length;
+    const completedHabitIds = new Set(this.listLogs(date).map((l) => l.habitId));
+    const completed = todos.filter((t) => completedHabitIds.has(t.habitId)).length;
+    const rate = scheduled > 0 ? completed / scheduled : 0;
+    return { scheduled, completed, rate };
+  },
+
+  /** 予定100%達成の連続日数（今日から遡る）。予定が0件の日はスキップ。 */
+  getPlanStreakDays(): number {
+    const oneDayMs = 86400000;
+    let count = 0;
+    let t = new Date(todayStr() + "T00:00:00Z").getTime();
+    for (;;) {
+      const dateStr = new Date(t).toISOString().slice(0, 10);
+      const s = this.getDayPlanSummary(dateStr);
+      if (s.scheduled === 0) break;
+      if (s.rate < 1) break;
+      count++;
+      t -= oneDayMs;
+    }
+    return count;
+  },
+
+  /** 習慣の直近 days 日間の達成率（スケジュールに入っていた日のうちログがあった日）。 */
+  getHabitAchievementRate(habitId: string, days: number): { scheduledDays: number; completedDays: number; rate: number } {
+    const habit = this.getHabit(habitId);
+    if (!habit) return { scheduledDays: 0, completedDays: 0, rate: 0 };
+    const oneDayMs = 86400000;
+    let scheduledDays = 0;
+    let completedDays = 0;
+    let t = new Date(todayStr() + "T00:00:00Z").getTime();
+    for (let i = 0; i < days; i++) {
+      const dateStr = new Date(t).toISOString().slice(0, 10);
+      if (isDateInSchedule(dateStr, habit)) {
+        scheduledDays++;
+        if (this.listLogs(dateStr).some((l) => l.habitId === habitId)) completedDays++;
+      }
+      t -= oneDayMs;
+    }
+    const rate = scheduledDays > 0 ? completedDays / scheduledDays : 0;
+    return { scheduledDays, completedDays, rate };
+  },
+
+  /** 直近 days 日分の日別達成率（日付・予定数・完了数・率）。 */
+  getDailyAchievementRates(days: number): { date: string; scheduled: number; completed: number; rate: number }[] {
+    const oneDayMs = 86400000;
+    let t = new Date(todayStr() + "T00:00:00Z").getTime();
+    const result: { date: string; scheduled: number; completed: number; rate: number }[] = [];
+    for (let i = 0; i < days; i++) {
+      const dateStr = new Date(t).toISOString().slice(0, 10);
+      const s = this.getDayPlanSummary(dateStr);
+      result.push({ date: dateStr, ...s });
+      t -= oneDayMs;
+    }
+    return result;
   },
 
   addLog(input: {

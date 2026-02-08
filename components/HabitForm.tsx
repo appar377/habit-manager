@@ -5,6 +5,10 @@ import { addHabitAction, updateHabitAction } from "@/lib/actions";
 import type { Habit, ScheduleRule } from "@/lib/store";
 import { roundTimeTo15 } from "@/lib/time";
 import Pressable from "./ui/Pressable";
+import Label from "./ui/Label";
+import Input from "./ui/Input";
+import Select from "./ui/Select";
+import Button from "./ui/Button";
 
 const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -91,108 +95,102 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 space-y-4 bg-neutral-50/50 dark:bg-neutral-800/50">
+    <form onSubmit={submit} className="rounded-[var(--radius-xl)] border-2 border-border p-4 space-y-4 bg-bg-subtle">
       <div>
-        <label className="block text-xs text-neutral-500 mb-1">名前</label>
-        <input
+        <Label>名前</Label>
+        <Input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="習慣の名前"
-          className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
           required
         />
       </div>
       <div>
-        <label className="block text-xs text-neutral-500 mb-1">タイプ</label>
-        <select
+        <Label>タイプ</Label>
+        <Select
           value={type}
           onChange={(e) => setType(e.target.value as "exercise" | "study")}
-          className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
         >
           <option value="exercise">運動</option>
           <option value="study">学習</option>
-        </select>
+        </Select>
       </div>
       {type === "exercise" ? (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">目標セット数</label>
-            <input
+            <Label>目標セット数</Label>
+            <Input
               type="number"
               inputMode="numeric"
               min={0}
               value={targetSets}
               onChange={(e) => setTargetSets(e.target.value)}
               placeholder="10"
-              className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
             />
           </div>
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">目標回数</label>
-            <input
+            <Label>目標回数</Label>
+            <Input
               type="number"
               inputMode="numeric"
               min={0}
               value={targetReps}
               onChange={(e) => setTargetReps(e.target.value)}
               placeholder="25"
-              className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
             />
           </div>
         </div>
       ) : (
         <div>
-          <label className="block text-xs text-neutral-500 mb-1">目標分数</label>
-          <input
+          <Label>目標分数</Label>
+          <Input
             type="number"
             inputMode="numeric"
             min={0}
             value={targetMin}
             onChange={(e) => setTargetMin(e.target.value)}
             placeholder="90"
-            className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
           />
         </div>
       )}
 
-      <fieldset className="rounded-xl border border-neutral-200 dark:border-neutral-700 p-4 space-y-3">
-        <legend className="text-xs font-medium text-neutral-500 px-1">スケジュール（予定に表示）</legend>
-        <label className="flex items-center gap-2">
+      <fieldset className="rounded-[var(--radius-xl)] border-2 border-border p-4 space-y-3 bg-bg-muted">
+        <legend className="text-xs font-medium text-fg-muted px-1">スケジュール（予定に表示）</legend>
+        <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
             checked={scheduleEnabled}
             onChange={(e) => setScheduleEnabled(e.target.checked)}
-            className="w-4 h-4"
+            className="w-4 h-4 rounded border-border"
           />
-          <span className="text-sm">スケジュールをON</span>
+          <span className="text-sm text-foreground">スケジュールをON</span>
         </label>
         {scheduleEnabled && (
           <>
             <div>
-              <label className="block text-xs text-neutral-500 mb-1">頻度</label>
-              <select
+              <Label>頻度</Label>
+              <Select
                 value={scheduleRule}
                 onChange={(e) => setScheduleRule(e.target.value as ScheduleRule)}
-                className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
               >
                 <option value="daily">毎日</option>
                 <option value="weekly">週の指定曜日</option>
                 <option value="interval_days">N日ごと</option>
-              </select>
+              </Select>
             </div>
             {scheduleRule === "weekly" && (
               <div>
-                <span className="block text-xs text-neutral-500 mb-2">曜日</span>
-                <div className="flex flex-wrap gap-2">
+                <Label>曜日</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
                   {WEEKDAY_LABELS.map((label, d) => (
                     <Pressable
                       key={d}
                       onClick={() => toggleWeekday(d)}
-                      className={`min-h-[36px] min-w-[36px] rounded-lg text-sm font-medium ${
+                      className={`min-h-[36px] min-w-[36px] rounded-[var(--radius-md)] text-sm font-medium ${
                         scheduleWeekdays.includes(d)
                           ? "bg-foreground text-background"
-                          : "bg-neutral-200 dark:bg-neutral-700"
+                          : "bg-bg-subtle text-fg-muted"
                       }`}
                     >
                       {label}
@@ -203,43 +201,40 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
             )}
             {scheduleRule === "interval_days" && (
               <div>
-                <label className="block text-xs text-neutral-500 mb-1">何日ごと</label>
-                <input
+                <Label>何日ごと</Label>
+                <Input
                   type="number"
                   inputMode="numeric"
                   min={1}
                   value={scheduleIntervalDays}
                   onChange={(e) => setScheduleIntervalDays(e.target.value)}
                   placeholder="1"
-                  className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
                 />
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-neutral-500 mb-1">開始（15分単位）</label>
-                <input
+                <Label>開始（15分単位）</Label>
+                <Input
                   type="time"
                   step={900}
                   value={scheduleStart}
                   onChange={(e) => setScheduleStart(roundTimeTo15(e.target.value))}
-                  className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
                 />
               </div>
               <div>
-                <label className="block text-xs text-neutral-500 mb-1">終了（15分単位）</label>
-                <input
+                <Label>終了（15分単位）</Label>
+                <Input
                   type="time"
                   step={900}
                   value={scheduleEnd}
                   onChange={(e) => setScheduleEnd(roundTimeTo15(e.target.value))}
-                  className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-neutral-500 mb-1">表示優先度</label>
-              <input
+              <Label>表示優先度</Label>
+              <Input
                 type="number"
                 inputMode="numeric"
                 min={1}
@@ -247,29 +242,21 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
                 placeholder="1が最優先・空で低"
-                className="w-full min-h-[44px] px-3 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-background"
               />
-              <p className="text-[11px] text-neutral-400 mt-0.5">予定タブでの表示順。小さいほど上に表示されます。</p>
+              <p className="text-[11px] text-fg-muted mt-0.5">予定タブでの表示順。小さいほど上に表示されます。</p>
             </div>
           </>
         )}
       </fieldset>
 
       <div className="flex gap-2">
-        <Pressable
-          type="submit"
-          disabled={isPending || !name.trim()}
-          className="flex-1 min-h-[44px] rounded-lg bg-foreground text-background font-medium disabled:opacity-50"
-        >
+        <Button type="submit" fullWidth disabled={isPending || !name.trim()}>
           {isPending ? "保存中…" : isEdit ? "更新" : "追加"}
-        </Pressable>
+        </Button>
         {onCancel && (
-          <Pressable
-            onClick={onCancel}
-            className="min-h-[44px] px-4 rounded-lg border border-neutral-200 dark:border-neutral-600"
-          >
+          <Button type="button" variant="secondary" onClick={onCancel}>
             キャンセル
-          </Pressable>
+          </Button>
         )}
       </div>
     </form>

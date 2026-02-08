@@ -14,11 +14,14 @@ export default async function HabitsPage({ searchParams }: PageProps) {
   }));
 
   return (
-    <div>
-      <h1 className="text-lg font-semibold text-neutral-500 mb-1">習慣</h1>
-      <p className="text-sm text-neutral-500 mb-4">
-        習慣の一覧・追加・編集。アーカイブした習慣は Capture には出ません。
-      </p>
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-lg font-bold text-foreground">習慣</h1>
+        <p className="text-sm text-fg-muted mt-1">
+          習慣の一覧・追加・編集。スケジュールをONにすると予定タブに表示されます。
+        </p>
+      </header>
+
       <HabitsList habitsWithTrend={habitsWithTrend} includeArchived={includeArchived} />
     </div>
   );

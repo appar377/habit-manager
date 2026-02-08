@@ -25,18 +25,18 @@ export default function KPICard({
 
   return (
     <div
-      className={`rounded-xl border bg-neutral-50/50 dark:bg-neutral-800/50 p-4 flex flex-col gap-3 min-h-[72px] ${
+      className={`rounded-[var(--radius-xl)] border-2 p-4 flex flex-col gap-3 min-h-[72px] bg-bg-muted shadow-[var(--shadow-card)] ${
         hasAccent
-          ? "border-l-4 border-l-neutral-400 dark:border-l-neutral-500 border-neutral-200 dark:border-neutral-700"
-          : "border border-neutral-200 dark:border-neutral-700"
+          ? "border-l-4 border-l-primary border-border"
+          : "border-border"
       }`}
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs text-neutral-500 mb-0.5">{label}</p>
+          <p className="text-xs text-fg-muted mb-0.5">{label}</p>
           <p className="text-xl font-semibold tabular-nums">
             {value}
-            {unit && <span className="text-sm font-normal text-neutral-500 ml-1">{unit}</span>}
+            {unit && <span className="text-sm font-normal text-fg-muted ml-1">{unit}</span>}
           </p>
         </div>
         <TrendIcon trend={trend} className="shrink-0" />
