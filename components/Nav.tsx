@@ -8,9 +8,11 @@ import { usePathname } from "next/navigation";
  * PC (md+): 上固定に切替
  */
 const TABS = [
-  { href: "/review", label: "分析", aria: "分析を見る" },
+  { href: "/capture", label: "記録", aria: "ログを記録" },
   { href: "/plan", label: "予定", aria: "予定を見る" },
   { href: "/habits", label: "習慣", aria: "習慣を管理" },
+  { href: "/review", label: "分析", aria: "分析を見る" },
+  { href: "/ranking", label: "ランキング", aria: "ランキングを見る" },
 ] as const;
 
 const NAV_HEIGHT = 56;

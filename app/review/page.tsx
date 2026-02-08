@@ -1,4 +1,6 @@
 import AchievementRateCard from "@/components/AchievementRateCard";
+import CheatDayProgress from "@/components/CheatDayProgress";
+import ComebackCard from "@/components/ComebackCard";
 import DailyRateBar from "@/components/DailyRateBar";
 import HabitAchievementRow from "@/components/HabitAchievementRow";
 import KPICard from "@/components/KPICard";
@@ -51,6 +53,13 @@ export default async function ReviewPage() {
 
   const logStreak = store.getStreakDays();
   const planStreak = store.getPlanStreakDays();
+  const logComebackCount = store.getLogComebackCount();
+  const cheatDayStatus = store.getCheatDayStatus();
+  const cheatDayConfig = store.cheatDayConfig;
+  const dailyRatesInCycle =
+    cheatDayConfig && cheatDayStatus
+      ? [...store.getDailyAchievementRates(cheatDayConfig.cycleDays)].reverse()
+      : [];
 
   const habits = store.listHabits();
   const scheduledHabits = habits.filter((h) => h.scheduleEnabled);
@@ -73,11 +82,21 @@ export default async function ReviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* ストリーク */}
+      {/* ストリーク・七転び八起き */}
       <section>
         <h2 className="text-xs font-semibold text-fg-muted mb-2">連続記録</h2>
-        <StreakCards logStreak={logStreak} planStreak={planStreak} />
+        <div className="space-y-3">
+          <StreakCards logStreak={logStreak} planStreak={planStreak} />
+          <ComebackCard count={logComebackCount} />
+        </div>
       </section>
+
+      {cheatDayStatus && (
+        <CheatDayProgress
+          status={cheatDayStatus}
+          dailyRatesInCycle={dailyRatesInCycle}
+        />
+      )}
 
       {/* 全体の達成率（直近7日） */}
       <section>

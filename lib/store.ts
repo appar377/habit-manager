@@ -40,6 +40,58 @@ export type Log = {
   volume: number;      // derived sets*reps or 0
 };
 
+/** チートデイ設定。null は未選択（初回オンボーディング用）。 */
+export type CheatDayConfig = {
+  cycleDays: number;
+  requiredAchievementPercent: number;
+  /** 表示用ラベル（例: "週1回（標準）"） */
+  label: string;
+  /** 表示用説明 */
+  description: string;
+};
+
+/** 研究に基づいたチートデイ周期プリセット（計画的な逸脱はアドヒアランス向上と報告）。 */
+export const CHEAT_DAY_PRESETS: CheatDayConfig[] = [
+  {
+    cycleDays: 7,
+    requiredAchievementPercent: 70,
+    label: "週1回（ゆるめ）",
+    description: "7日間で達成率70%以上を維持すると1日解禁。初心者向け。",
+  },
+  {
+    cycleDays: 7,
+    requiredAchievementPercent: 80,
+    label: "週1回（標準）",
+    description: "7日間で達成率80%以上を維持すると1日解禁。研究で週1の計画的な逸脱でアドヒアランス向上が報告されています。",
+  },
+  {
+    cycleDays: 14,
+    requiredAchievementPercent: 80,
+    label: "2週に1回",
+    description: "14日間で達成率80%を維持すると1日解禁。2週オン・オフに近い周期です。",
+  },
+  {
+    cycleDays: 21,
+    requiredAchievementPercent: 85,
+    label: "3週に1回（厳しめ）",
+    description: "21日間で達成率85%以上を維持すると1日解禁。長めのサイクル向け。",
+  },
+];
+
+/** ランキング用：自分と比べる相手。数値は未入力なら null（非表示）。 */
+export type Rival = {
+  id: string;
+  name: string;
+  /** 記録ストリーク（日） */
+  logStreak?: number;
+  /** 達成ストリーク（日） */
+  planStreak?: number;
+  /** 立ち上がり回数 */
+  comebackCount?: number;
+  /** 直近7日達成率（0〜1）。未入力なら null */
+  achievementRate?: number;
+};
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 function todayStr() {
@@ -152,6 +204,14 @@ export const store = {
 
   /** 日付 → habitId → { start, end }。Timeline ドラッグ/リサイズで上書き。 */
   planOverrides: {} as Record<string, Record<string, { start: string; end: string }>>,
+
+  /** チートデイ設定。null のときは未選択（オンボーディングで選択させる）。 */
+  cheatDayConfig: null as CheatDayConfig | null,
+  /** チートデイを使用した日付（YYYY-MM-DD）の配列。この日はストリーク計算で「達成」扱い。 */
+  cheatDaysUsed: [] as string[],
+
+  /** ランキング用：自分と比べる相手の一覧。 */
+  rivals: [] as Rival[],
 
   /** includeArchived: false ならアーカイブ済みを除外（Capture 用）。true で全件。 */
   listHabits(includeArchived = false) {
@@ -290,15 +350,43 @@ export const store = {
     return this.logs.filter((l) => l.date === date);
   },
 
-  /** 今日を含む「ログが1件以上ある日」の連続日数。0＝今日はまだログなし。 */
+  /** 今日を含む「ログが1件以上ある日」またはチートデイ使用日の連続日数。0＝今日はまだログなしかつチートデイ未使用。 */
   getStreakDays(): number {
     const loggedDates = new Set(this.logs.map((l) => l.date));
+    const cheatSet = new Set(this.cheatDaysUsed);
     const oneDayMs = 86400000;
     let count = 0;
     let t = new Date(todayStr() + "T00:00:00Z").getTime();
-    while (loggedDates.has(new Date(t).toISOString().slice(0, 10))) {
+    while (loggedDates.has(new Date(t).toISOString().slice(0, 10)) || cheatSet.has(new Date(t).toISOString().slice(0, 10))) {
       count++;
       t -= oneDayMs;
+    }
+    return count;
+  },
+
+  /**
+   * 七転び八起き：ストリークが途切れたあと「また記録を再開した」回数。
+   * 前日に記録がなく、その日に記録（またはチートデイ）があった日を「立ち上がり」として数える。
+   */
+  getLogComebackCount(): number {
+    const loggedDates = new Set(this.logs.map((l) => l.date));
+    const cheatSet = new Set(this.cheatDaysUsed);
+    const activeDates = new Set<string>([...loggedDates, ...cheatSet]);
+    if (activeDates.size === 0) return 0;
+    const sorted = [...activeDates].sort();
+    const first = sorted[0];
+    const today = todayStr();
+    const oneDayMs = 86400000;
+    let count = 0;
+    let t = new Date(first + "T00:00:00Z").getTime();
+    const end = new Date(today + "T23:59:59Z").getTime();
+    let prevActive = false;
+    while (t <= end) {
+      const d = new Date(t).toISOString().slice(0, 10);
+      const active = loggedDates.has(d) || cheatSet.has(d);
+      if (active && !prevActive) count++;
+      prevActive = active;
+      t += oneDayMs;
     }
     return count;
   },
@@ -314,8 +402,9 @@ export const store = {
     return { scheduled, completed, rate };
   },
 
-  /** 予定100%達成の連続日数（今日から遡る）。予定が0件の日はスキップ。 */
+  /** 予定100%達成の連続日数（今日から遡る）。予定が0件の日はスキップ。チートデイ使用日は達成扱い。 */
   getPlanStreakDays(): number {
+    const cheatSet = new Set(this.cheatDaysUsed);
     const oneDayMs = 86400000;
     let count = 0;
     let t = new Date(todayStr() + "T00:00:00Z").getTime();
@@ -323,7 +412,8 @@ export const store = {
       const dateStr = new Date(t).toISOString().slice(0, 10);
       const s = this.getDayPlanSummary(dateStr);
       if (s.scheduled === 0) break;
-      if (s.rate < 1) break;
+      const countedAsAchieved = s.rate >= 1 || cheatSet.has(dateStr);
+      if (!countedAsAchieved) break;
       count++;
       t -= oneDayMs;
     }
@@ -362,6 +452,97 @@ export const store = {
       t -= oneDayMs;
     }
     return result;
+  },
+
+  /** チートデイの解禁状態。設定未選択時は null。 */
+  getCheatDayStatus(): {
+    unlocked: boolean;
+    cycleAchievementRate: number;
+    periodDaysWithSchedule: number;
+    requiredPercent: number;
+    usedInPeriod: boolean;
+    periodStart: string;
+    periodEnd: string;
+  } | null {
+    const cfg = this.cheatDayConfig;
+    if (!cfg) return null;
+    const oneDayMs = 86400000;
+    let t = new Date(todayStr() + "T00:00:00Z").getTime();
+    let sumRate = 0;
+    let daysWithSchedule = 0;
+    let periodStart = "";
+    let periodEnd = "";
+    for (let i = 0; i < cfg.cycleDays; i++) {
+      const dateStr = new Date(t).toISOString().slice(0, 10);
+      if (i === 0) periodEnd = dateStr;
+      if (i === cfg.cycleDays - 1) periodStart = dateStr;
+      const s = this.getDayPlanSummary(dateStr);
+      if (s.scheduled > 0) {
+        daysWithSchedule++;
+        sumRate += s.rate;
+      }
+      t -= oneDayMs;
+    }
+    const cycleAchievementRate = daysWithSchedule > 0 ? sumRate / daysWithSchedule : 0;
+    const required = cfg.requiredAchievementPercent / 100;
+    const usedInPeriod = this.cheatDaysUsed.some((d) => d >= periodStart && d <= periodEnd);
+    const unlocked = cycleAchievementRate >= required && !usedInPeriod;
+    return {
+      unlocked,
+      cycleAchievementRate,
+      periodDaysWithSchedule: daysWithSchedule,
+      requiredPercent: cfg.requiredAchievementPercent,
+      usedInPeriod,
+      periodStart,
+      periodEnd,
+    };
+  },
+
+  setCheatDayConfig(config: CheatDayConfig): void {
+    this.cheatDayConfig = config;
+  },
+
+  /** 指定日をチートデイとして使用（その日はストリークで達成扱い）。 */
+  useCheatDay(date: string): void {
+    if (!this.cheatDaysUsed.includes(date)) this.cheatDaysUsed.push(date);
+  },
+
+  getCheatDayPresets(): CheatDayConfig[] {
+    return CHEAT_DAY_PRESETS;
+  },
+
+  listRivals(): Rival[] {
+    return this.rivals;
+  },
+
+  addRival(input: { name: string; logStreak?: number; planStreak?: number; comebackCount?: number; achievementRate?: number }): Rival {
+    const rival: Rival = {
+      id: uid(),
+      name: input.name.trim(),
+      logStreak: input.logStreak,
+      planStreak: input.planStreak,
+      comebackCount: input.comebackCount,
+      achievementRate: input.achievementRate,
+    };
+    this.rivals.push(rival);
+    return rival;
+  },
+
+  updateRival(id: string, input: Partial<Pick<Rival, "name" | "logStreak" | "planStreak" | "comebackCount" | "achievementRate">>): Rival | undefined {
+    const r = this.rivals.find((x) => x.id === id);
+    if (!r) return undefined;
+    if (input.name !== undefined) r.name = input.name.trim();
+    if (input.logStreak !== undefined) r.logStreak = input.logStreak;
+    if (input.planStreak !== undefined) r.planStreak = input.planStreak;
+    if (input.comebackCount !== undefined) r.comebackCount = input.comebackCount;
+    if (input.achievementRate !== undefined) r.achievementRate = input.achievementRate;
+    return r;
+  },
+
+  removeRival(id: string): boolean {
+    const before = this.rivals.length;
+    this.rivals = this.rivals.filter((x) => x.id !== id);
+    return this.rivals.length < before;
   },
 
   addLog(input: {

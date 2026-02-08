@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { store } from "@/lib/store";
+import type { CheatDayConfig, Rival } from "@/lib/store";
 
 function todayStr() {
   const d = new Date();
@@ -176,4 +177,49 @@ export async function updatePlanOverrideAction(
   store.setPlanOverride(date, habitId, normalized);
   revalidatePath("/plan");
   return {};
+}
+
+/** チートデイの周期・条件を設定（初回選択用）。 */
+export async function setCheatDayConfigAction(config: CheatDayConfig): Promise<void> {
+  store.setCheatDayConfig(config);
+  revalidatePath("/capture");
+  revalidatePath("/plan");
+  revalidatePath("/review");
+}
+
+/** 指定日をチートデイとして使用（ストリーク維持のためその日を達成扱いにする）。 */
+export async function useCheatDayAction(date: string): Promise<void> {
+  store.useCheatDay(date);
+  revalidatePath("/capture");
+  revalidatePath("/plan");
+  revalidatePath("/review");
+}
+
+/** ランキング用ライバルを追加。 */
+export async function addRivalAction(input: {
+  name: string;
+  logStreak?: number;
+  planStreak?: number;
+  comebackCount?: number;
+  achievementRate?: number;
+}): Promise<Rival> {
+  const rival = store.addRival(input);
+  revalidatePath("/ranking");
+  return rival;
+}
+
+/** ランキング用ライバルを更新。 */
+export async function updateRivalAction(
+  id: string,
+  input: Partial<Pick<Rival, "name" | "logStreak" | "planStreak" | "comebackCount" | "achievementRate">>
+): Promise<{ ok: boolean }> {
+  const r = store.updateRival(id, input);
+  revalidatePath("/ranking");
+  return { ok: !!r };
+}
+
+/** ランキング用ライバルを削除。 */
+export async function removeRivalAction(id: string): Promise<void> {
+  store.removeRival(id);
+  revalidatePath("/ranking");
 }

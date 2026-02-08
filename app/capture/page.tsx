@@ -1,6 +1,9 @@
 import LogForm from "@/components/LogForm";
 import LogList from "@/components/LogList";
 import StreakBadge from "@/components/StreakBadge";
+import ComebackBadge from "@/components/ComebackBadge";
+import CheatDayOnboarding from "@/components/CheatDayOnboarding";
+import CheatDayStatus from "@/components/CheatDayStatus";
 import { store } from "@/lib/store";
 import { todayStr, sortHabitsByRecentUsage } from "@/lib/utils";
 
@@ -15,13 +18,24 @@ export default async function CapturePage() {
   const recentLogs = todayLogs.slice(0, CAPTURE_RECENT_LOGS);
   const defaultHabitId = habits[0]?.id ?? "";
   const streak = store.getStreakDays();
+  const comebackCount = store.getLogComebackCount();
+  const cheatDayConfig = store.cheatDayConfig;
+  const cheatDayStatus = store.getCheatDayStatus();
+  const cheatDayPresets = store.getCheatDayPresets();
 
   return (
     <div className="flex flex-col gap-4 min-h-[calc(100dvh-8rem)] md:min-h-0">
       <div className="flex flex-wrap items-center gap-2 shrink-0">
         <span className="text-sm font-medium text-fg-muted">{today}</span>
         <StreakBadge count={streak} />
+        <ComebackBadge count={comebackCount} />
       </div>
+
+      {cheatDayConfig === null ? (
+        <CheatDayOnboarding presets={cheatDayPresets} />
+      ) : cheatDayStatus ? (
+        <CheatDayStatus status={cheatDayStatus} />
+      ) : null}
 
       <div className="flex flex-col flex-1 min-h-0">
         <LogForm habits={habits} defaultHabitId={defaultHabitId} />
