@@ -1,20 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { archiveHabitAction } from "@/lib/actions";
+import { useState } from "react";
 import type { Habit } from "@/lib/store";
+import type { ScheduleRule } from "@/lib/store";
 import TrendIcon from "./TrendIcon";
 import HabitForm from "./HabitForm";
 import Button from "./ui/Button";
 
 type Trend = "up" | "down" | "same";
 
-type Props = {
-  habit: Habit;
-  trend: Trend;
-  onArchive: () => void;
-  onUpdate: () => void;
-};
+const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 
 function targetLabel(habit: Habit): string {
   if (habit.type === "exercise") {
@@ -28,31 +23,31 @@ function targetLabel(habit: Habit): string {
   return "—";
 }
 
-export default function HabitCard({ habit, trend, onArchive, onUpdate }: Props) {
+function scheduleFrequencyLabel(habit: Habit): string {
+  if (!habit.scheduleEnabled || !habit.scheduleRule) return "予定なし";
+  const rule = habit.scheduleRule as ScheduleRule;
+  if (rule === "daily") return "毎日";
+  if (rule === "weekly") {
+    const w = habit.scheduleWeekdays ?? [];
+    if (w.length === 0) return "週?";
+    if (w.length === 7) return "毎日";
+    return "週" + w.map((d) => WEEKDAY_LABELS[d]).join("");
+  }
+  if (rule === "interval_days") {
+    const n = habit.scheduleIntervalDays ?? 1;
+    return n === 1 ? "毎日" : `${n}日ごと`;
+  }
+  return "予定あり";
+}
+
+type Props = {
+  habit: Habit;
+  trend: Trend;
+  onUpdate: () => void;
+};
+
+export default function HabitCard({ habit, trend, onUpdate }: Props) {
   const [editing, setEditing] = useState(false);
-  const [isPending, startTransition] = useTransition();
-
-  function handleArchive() {
-    startTransition(async () => {
-      await archiveHabitAction(habit.id);
-      onArchive();
-    });
-  }
-
-  if (habit.archived) {
-    return (
-      <li className="rounded-[var(--radius-xl)] border-2 border-border bg-bg-subtle p-4 opacity-80">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="font-semibold text-foreground">{habit.name}</p>
-            <span className="inline-block mt-1 text-[10px] font-medium text-fg-muted bg-bg-muted px-2 py-0.5 rounded-md">
-              アーカイブ済み
-            </span>
-          </div>
-        </div>
-      </li>
-    );
-  }
 
   return (
     <li className="rounded-[var(--radius-xl)] border-2 border-border bg-bg-muted p-4 shadow-[var(--shadow-card)]">
@@ -73,23 +68,18 @@ export default function HabitCard({ habit, trend, onArchive, onUpdate }: Props) 
             )}
           </div>
           <p className="font-semibold text-foreground truncate">{habit.name}</p>
-          <p className="text-xs text-fg-muted mt-0.5">目標 {targetLabel(habit)}</p>
+          <p className="text-xs text-fg-muted mt-0.5">
+            目標 {targetLabel(habit)}
+            {habit.scheduleEnabled && (
+              <span className="ml-2"> · {scheduleFrequencyLabel(habit)}</span>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <TrendIcon trend={trend} className="shrink-0" />
-          <div className="flex gap-1">
-            <Button variant="ghost" className="min-h-[36px] px-2 text-xs" onClick={() => setEditing(true)}>
-              編集
-            </Button>
-            <Button
-              variant="ghost"
-              className="min-h-[36px] px-2 text-xs text-fg-muted hover:text-danger"
-              onClick={handleArchive}
-              disabled={isPending}
-            >
-              アーカイブ
-            </Button>
-          </div>
+          <Button variant="ghost" className="min-h-[36px] px-2 text-xs" onClick={() => setEditing(true)}>
+            編集
+          </Button>
         </div>
       </div>
 

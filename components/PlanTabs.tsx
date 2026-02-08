@@ -127,6 +127,7 @@ export default function PlanTabs({
           date={date}
           habits={habits}
           logsByHabitId={logsByHabitId}
+          overridesForDate={overridesForDate}
         />
       </div>
     </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Habit } from "@/lib/store";
 import HabitForm from "./HabitForm";
@@ -12,10 +11,9 @@ type Trend = "up" | "down" | "same";
 
 type Props = {
   habitsWithTrend: { habit: Habit; trend: Trend }[];
-  includeArchived: boolean;
 };
 
-export default function HabitsList({ habitsWithTrend, includeArchived }: Props) {
+export default function HabitsList({ habitsWithTrend }: Props) {
   const router = useRouter();
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -23,19 +21,12 @@ export default function HabitsList({ habitsWithTrend, includeArchived }: Props) 
     router.refresh();
   }
 
-  const activeHabits = habitsWithTrend.filter((h) => !h.habit.archived);
-  const archivedHabits = habitsWithTrend.filter((h) => h.habit.archived);
+  const habits = habitsWithTrend.filter((h) => !h.habit.archived);
 
   return (
     <div className="space-y-6">
       {/* ツールバー */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href={includeArchived ? "/habits" : "/habits?archived=1"}
-          className="text-sm font-medium text-fg-muted hover:text-foreground underline underline-offset-2"
-        >
-          {includeArchived ? "アーカイブを隠す" : "アーカイブを表示"}
-        </Link>
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <Button
           variant="primary"
           onClick={() => setShowCreateForm(true)}
@@ -59,19 +50,18 @@ export default function HabitsList({ habitsWithTrend, includeArchived }: Props) 
         </section>
       )}
 
-      {/* アクティブな習慣一覧 */}
+      {/* 習慣一覧 */}
       <section>
         <h2 className="text-sm font-bold text-foreground mb-2">
-          一覧 {activeHabits.length > 0 && `（${activeHabits.length}件）`}
+          一覧 {habits.length > 0 && `（${habits.length}件）`}
         </h2>
-        {activeHabits.length > 0 ? (
+        {habits.length > 0 ? (
           <ul className="space-y-3 list-none p-0 m-0" role="list">
-            {activeHabits.map(({ habit, trend }) => (
+            {habits.map(({ habit, trend }) => (
               <HabitCard
                 key={habit.id}
                 habit={habit}
                 trend={trend}
-                onArchive={refresh}
                 onUpdate={refresh}
               />
             ))}
@@ -86,27 +76,6 @@ export default function HabitsList({ habitsWithTrend, includeArchived }: Props) 
           </div>
         )}
       </section>
-
-      {/* アーカイブ済み（表示時のみ） */}
-      {includeArchived && archivedHabits.length > 0 && (
-        <section>
-          <h2 className="text-sm font-bold text-foreground mb-2">
-            アーカイブ（{archivedHabits.length}件）
-          </h2>
-          <ul className="space-y-3 list-none p-0 m-0" role="list">
-            {archivedHabits.map(({ habit, trend }) => (
-              <HabitCard
-                key={habit.id}
-                habit={habit}
-                trend={trend}
-                onArchive={refresh}
-                onUpdate={refresh}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-
     </div>
   );
 }

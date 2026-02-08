@@ -133,6 +133,7 @@ export default function PlanTimeline({ todos, completedIds, date, habits = [], o
     <>
       <div className="plan-timeline-wrapper min-w-0 -mx-4 md:-mx-0 rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-y-auto overflow-x-auto max-h-[75dvh] md:max-h-[70vh] min-h-[280px] overscroll-behavior-y-contain">
         <FullCalendar
+          key={date}
           plugins={[interactionPlugin, timeGridPlugin]}
           initialView="timeGridDay"
           initialDate={date}

@@ -90,7 +90,7 @@ export default function PlanDateSwitcher({ date, today, view = "day" }: Props) {
           aria-haspopup="dialog"
           aria-label="日付を選ぶ"
         >
-          <time dateTime={date}>{formatDateJa(date)}</time>
+          <time dateTime={date}>{formatDateJa(date, undefined, true)}</time>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
             <path d="M6 9l6 6 6-6" />
           </svg>

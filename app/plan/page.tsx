@@ -5,6 +5,7 @@ import PlanMonthView from "@/components/PlanMonthView";
 import StreakCalendar from "@/components/StreakCalendar";
 import CheatDayOnboarding from "@/components/CheatDayOnboarding";
 import CheatDayStatus from "@/components/CheatDayStatus";
+import NotificationScheduler from "@/components/NotificationScheduler";
 import { store } from "@/lib/store";
 import { todayStr, parseDate, sortHabitsByRecentUsage, getWeekDates, getMonthCells } from "@/lib/utils";
 
@@ -72,6 +73,11 @@ export default async function PlanPage(props: PlanPageProps) {
           <section>
             <h2 className="sr-only">{date === today ? "今日のTODO" : `${date} のTODO`}</h2>
             <p className="text-xs text-fg-muted mb-3">チェックで完了＝記録になります</p>
+            {todosWithTime.length > 0 && (
+              <div className="mb-3 rounded-[var(--radius-lg)] border border-border bg-bg-subtle px-3">
+                <NotificationScheduler date={date} todosWithTime={todosWithTime} />
+              </div>
+            )}
             <PlanTabs
               todosWithTime={todosWithTime}
               todosWithoutTime={todosWithoutTime}

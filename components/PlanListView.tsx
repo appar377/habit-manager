@@ -8,6 +8,7 @@ import type { Log } from "@/lib/store";
 import CheckCircle from "./ui/CheckCircle";
 import Input from "./ui/Input";
 import Label from "./ui/Label";
+import PlanEventDetailSheet from "./PlanEventDetailSheet";
 
 type TodoItem = {
   habitId: string;
@@ -18,12 +19,15 @@ type TodoItem = {
   hasTime?: boolean;
 };
 
+type PlanOverrideItem = { start: string; end: string; memo?: string };
+
 type Props = {
   todos: TodoItem[];
   completedIds: Set<string>;
   date: string;
   habits: Habit[];
   logsByHabitId: Map<string, Log>;
+  overridesForDate?: Record<string, PlanOverrideItem>;
 };
 
 export default function PlanListView({
@@ -32,10 +36,12 @@ export default function PlanListView({
   date,
   habits,
   logsByHabitId,
+  overridesForDate = {},
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [detailState, setDetailState] = useState<{ habitId: string; start: string; end: string } | null>(null);
 
   const handleToggle = (todo: TodoItem) => {
     const completed = completedIds.has(todo.habitId);
@@ -74,6 +80,7 @@ export default function PlanListView({
   }
 
   return (
+    <>
     <ul className="space-y-3 min-w-0">
       {todos.map((todo) => {
         const habit = habits.find((h) => h.id === todo.habitId);
@@ -91,10 +98,25 @@ export default function PlanListView({
             isSaving={savingId === todo.habitId}
             onToggle={() => handleToggle(todo)}
             onSave={(payload) => handleSaveDetails(todo.habitId, todo, payload)}
+            onOpenDetail={() => setDetailState({ habitId: todo.habitId, start: todo.start, end: todo.end })}
           />
         );
       })}
     </ul>
+
+    {detailState && habits.length > 0 && (
+      <PlanEventDetailSheet
+        open={true}
+        onClose={() => setDetailState(null)}
+        habits={habits}
+        habitId={detailState.habitId}
+        date={date}
+        initialStart={detailState.start}
+        initialEnd={detailState.end}
+        initialMemo={overridesForDate[detailState.habitId]?.memo}
+      />
+    )}
+  </>
   );
 }
 
@@ -106,6 +128,7 @@ function PlanListRow({
   isSaving,
   onToggle,
   onSave,
+  onOpenDetail,
 }: {
   todo: TodoItem;
   completed: boolean;
@@ -114,6 +137,7 @@ function PlanListRow({
   isSaving: boolean;
   onToggle: () => void;
   onSave: (p: { sets?: number; reps?: number; durationMin?: number }) => void;
+  onOpenDetail: () => void;
 }) {
   const [sets, setSets] = useState(log?.sets?.toString() ?? "");
   const [reps, setReps] = useState(log?.reps?.toString() ?? "");
@@ -151,14 +175,18 @@ function PlanListRow({
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={onOpenDetail}
+            className="flex items-center gap-2 flex-wrap text-left w-full rounded-[var(--radius-md)] -m-1 p-1 hover:bg-bg-subtle active:bg-bg-subtle transition-colors"
+          >
             <span className="font-medium text-foreground">{todo.title}</span>
             {todo.hasTime && (
               <span className="text-xs text-fg-muted tabular-nums">
                 {todo.start}–{todo.end}
               </span>
             )}
-          </div>
+          </button>
 
           <div className="flex flex-wrap items-center gap-3">
             {isExercise ? (

@@ -1,12 +1,8 @@
 import HabitsList from "@/components/HabitsList";
 import { store } from "@/lib/store";
 
-type PageProps = { searchParams: Promise<{ archived?: string }> };
-
-export default async function HabitsPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const includeArchived = params.archived === "1";
-  const habits = store.listHabits(includeArchived);
+export default async function HabitsPage() {
+  const habits = store.listHabits(false);
 
   const habitsWithTrend = habits.map((habit) => ({
     habit,
@@ -20,7 +16,7 @@ export default async function HabitsPage({ searchParams }: PageProps) {
         <p className="text-sm text-fg-muted mt-0.5">一覧・追加・編集。スケジュールONで予定に表示</p>
       </header>
 
-      <HabitsList habitsWithTrend={habitsWithTrend} includeArchived={includeArchived} />
+      <HabitsList habitsWithTrend={habitsWithTrend} />
     </div>
   );
 }

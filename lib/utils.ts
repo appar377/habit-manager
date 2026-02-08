@@ -40,16 +40,31 @@ export function addMonths(dateStr: string, delta: number): string {
   return `${y}-${m}-${dd}`;
 }
 
-/** 表示用: 2月1日 または 2025年2月1日（年が違う場合） */
-export function formatDateJa(dateStr: string, baseYear?: number): string {
+const DAY_LABELS_JA = ["日", "月", "火", "水", "木", "金", "土"];
+
+/** 指定日（YYYY-MM-DD）の曜日をローカルで取得。例: "月" */
+export function getDayOfWeekJa(dateStr: string): string {
+  const parts = dateStr.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return "";
+  const [y, m, day] = parts;
+  const local = new Date(y, m - 1, day);
+  return DAY_LABELS_JA[local.getDay()] ?? "";
+}
+
+/** 表示用: 2月1日 または 2025年2月1日（年が違う場合）。withWeekday: true で「2月1日(月)」 */
+export function formatDateJa(dateStr: string, baseYear?: number, withWeekday?: boolean): string {
   const d = parseDate(dateStr);
   if (!d) return dateStr;
   const y = d.getUTCFullYear();
   const m = d.getUTCMonth() + 1;
   const day = d.getUTCDate();
   const currentYear = baseYear ?? new Date().getFullYear();
-  if (y === currentYear) return `${m}月${day}日`;
-  return `${y}年${m}月${day}日`;
+  const base = y === currentYear ? `${m}月${day}日` : `${y}年${m}月${day}日`;
+  if (withWeekday) {
+    const w = getDayOfWeekJa(dateStr);
+    return w ? `${base}(${w})` : base;
+  }
+  return base;
 }
 
 /** 指定日を含む週の日曜〜土曜の YYYY-MM-DD を返す（日曜始まり）。 */
