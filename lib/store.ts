@@ -102,6 +102,16 @@ function todayStr() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** 今日から n 日過去の日付（YYYY-MM-DD）。ダミーデータ用。 */
+function daysAgo(n: number): string {
+  const t = new Date();
+  t.setDate(t.getDate() - n);
+  const y = t.getFullYear();
+  const m = String(t.getMonth() + 1).padStart(2, "0");
+  const day = String(t.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function diffMinutes(start?: string, end?: string): number {
   if (!start || !end) return 0;
   const [sh, sm] = start.split(":").map(Number);
@@ -110,6 +120,72 @@ function diffMinutes(start?: string, end?: string): number {
   const s = sh * 60 + sm;
   const e = eh * 60 + em;
   return Math.max(0, e - s);
+}
+
+/** ダミーログを生成（記録ストリーク・達成率・立ち上がり回数・グラフ用）。 */
+function buildDummyLogs(): Log[] {
+  const d = daysAgo;
+  let lid = 0;
+  const makeLog = (
+    date: string,
+    habitId: string,
+    opts: { sets?: number; reps?: number; start?: string; end?: string; durationMin?: number; volume?: number }
+  ): Log => {
+    const start = opts.start ?? "09:00";
+    const end = opts.end ?? "09:30";
+    const durationMin = opts.durationMin ?? diffMinutes(start, end);
+    const volume = opts.volume ?? (opts.sets ?? 0) * (opts.reps ?? 0);
+    return {
+      id: `dl${++lid}`,
+      date,
+      habitId,
+      sets: opts.sets,
+      reps: opts.reps,
+      start: opts.start,
+      end: opts.end,
+      durationMin,
+      volume,
+    };
+  };
+  const L = makeLog;
+
+  const logs: Log[] = [];
+  // 今日: 全習慣完了
+  logs.push(L(d(0), "ht1", { start: "06:00", end: "06:30", durationMin: 30 }));
+  logs.push(L(d(0), "ht2", { start: "07:00", end: "07:30", durationMin: 30 }));
+  logs.push(L(d(0), "ht3", { start: "19:00", end: "20:00", durationMin: 60 }));
+  logs.push(L(d(0), "ht4", { start: "21:00", end: "21:15", durationMin: 15 }));
+  logs.push(L(d(0), "hn1", { durationMin: 10 }));
+  logs.push(L(d(0), "hn2", { durationMin: 5 }));
+  logs.push(L(d(0), "h1", { sets: 10, reps: 25 }));
+
+  // 昨日: 一部 + 運動ログ（Volume グラフ用）
+  ["ht1", "ht2", "ht4", "hn1"].forEach((hid) => logs.push(L(d(1), hid, { durationMin: 20 })));
+  logs.push(L(d(1), "h1", { sets: 8, reps: 20 }));
+  logs.push(L(d(1), "h2", { durationMin: 5 }));
+  // 2日前: 全完了
+  logs.push(L(d(2), "ht1", { start: "06:00", end: "06:30", durationMin: 30 }));
+  logs.push(L(d(2), "ht2", { start: "07:00", end: "07:30", durationMin: 30 }));
+  logs.push(L(d(2), "ht3", { start: "19:00", end: "20:00", durationMin: 60 }));
+  logs.push(L(d(2), "ht4", { start: "21:00", end: "21:15", durationMin: 15 }));
+  logs.push(L(d(2), "hn1", { durationMin: 10 }));
+  logs.push(L(d(2), "hn2", { durationMin: 5 }));
+  logs.push(L(d(2), "h1", { sets: 10, reps: 25 }));
+  // 3日前: なし（ギャップ→立ち上がりカウント用）
+  // 4日前: 再開
+  logs.push(L(d(4), "ht1", { start: "06:00", end: "06:30", durationMin: 30 }));
+  logs.push(L(d(4), "ht2", { durationMin: 25 }));
+  // 5〜7日前
+  ["ht1", "ht2", "ht4"].forEach((hid) => logs.push(L(d(5), hid, { durationMin: 15 })));
+  ["ht1", "ht2", "ht3", "ht4", "hn1"].forEach((hid) => logs.push(L(d(6), hid, { durationMin: 20 })));
+  ["ht1", "ht2", "ht4", "hn1", "hn2"].forEach((hid) => logs.push(L(d(7), hid, { durationMin: 25 })));
+  // 8〜13日前（グラフ・達成率）
+  for (let i = 8; i <= 13; i++) {
+    const arr = ["ht1", "ht2", "ht3", "ht4", "hn1", "hn2"];
+    const n = (i % 3) + 4;
+    arr.slice(0, n).forEach((hid) => logs.push(L(d(i), hid, { durationMin: 15 + (i % 5) * 5 })));
+  }
+  return logs;
 }
 
 export const store = {
@@ -187,31 +263,40 @@ export const store = {
       scheduleRule: "daily",
       priority: 2,
     },
+    // アーカイブ済み（習慣タブで「アーカイブ表示」で確認用）
+    { id: "h-arch", name: "昔のランニング", type: "exercise", targetMin: 20, archived: true },
   ] as Habit[],
-  logs: [
-    {
-      id: "l1",
-      date: todayStr(),
-      habitId: "h1",
-      sets: 11,
-      reps: 25,
-      start: "07:00",
-      end: "07:20",
-      durationMin: 20,
-      volume: 275,
-    },
-  ] as Log[],
+  logs: buildDummyLogs(),
 
   /** 日付 → habitId → { start, end }。Timeline ドラッグ/リサイズで上書き。 */
-  planOverrides: {} as Record<string, Record<string, { start: string; end: string }>>,
+  planOverrides: (() => {
+    const t = new Date();
+    const y = t.getFullYear();
+    const m = String(t.getMonth() + 1).padStart(2, "0");
+    const day = String(t.getDate()).padStart(2, "0");
+    const today = `${y}-${m}-${day}`;
+    return {
+      [today]: {
+        ht1: { start: "06:15", end: "06:45" },
+        ht3: { start: "19:30", end: "20:30" },
+      },
+    } as Record<string, Record<string, { start: string; end: string }>>;
+  })(),
 
-  /** チートデイ設定。null のときは未選択（オンボーディングで選択させる）。 */
-  cheatDayConfig: null as CheatDayConfig | null,
-  /** チートデイを使用した日付（YYYY-MM-DD）の配列。この日はストリーク計算で「達成」扱い。 */
-  cheatDaysUsed: [] as string[],
+  /** チートデイ設定。ダミーでは「週1回（標準）」を選択済み。 */
+  cheatDayConfig: CHEAT_DAY_PRESETS[1] as CheatDayConfig,
+  /** チートデイを使用した日付。直近周期外の日を1件（解禁状態が確認しやすいよう）。 */
+  cheatDaysUsed: (() => {
+    const t = new Date();
+    t.setDate(t.getDate() - 8);
+    return [t.toISOString().slice(0, 10)];
+  })(),
 
-  /** ランキング用：自分と比べる相手の一覧。 */
-  rivals: [] as Rival[],
+  /** ランキング用：ダミーで2人登録。 */
+  rivals: [
+    { id: "r1", name: "ともだちA", logStreak: 5, planStreak: 3, comebackCount: 4, achievementRate: 0.85 },
+    { id: "r2", name: "ライバルB", logStreak: 2, planStreak: 2, comebackCount: 8, achievementRate: 0.72 },
+  ] as Rival[],
 
   /** includeArchived: false ならアーカイブ済みを除外（Capture 用）。true で全件。 */
   listHabits(includeArchived = false) {

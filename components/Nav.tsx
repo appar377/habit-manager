@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 
 /**
  * モバイル: 下固定タブ（ゲーム風・緑アクセント）
- * PC (md+): 上固定に切替
+ * PC (md+): 上固定に切替。アクティブ時はスムーズなトランジション。
  */
 const TABS = [
   { href: "/capture", label: "記録", aria: "ログを記録" },
@@ -16,6 +17,42 @@ const TABS = [
 ] as const;
 
 const NAV_HEIGHT = 56;
+
+function NavLink({
+  href,
+  label,
+  aria,
+  isActive,
+  layoutId,
+  className = "",
+}: {
+  href: string;
+  label: string;
+  aria: string;
+  isActive: boolean;
+  layoutId: string;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`relative flex-1 flex items-center justify-center min-h-[48px] min-w-0 rounded-[var(--radius-lg)] text-sm font-semibold transition-colors duration-200 ${
+        isActive ? "text-primary" : "text-fg-muted hover:text-foreground hover:bg-bg-subtle"
+      } ${className}`}
+      aria-current={isActive ? "page" : undefined}
+      aria-label={aria}
+    >
+      {isActive && (
+        <motion.span
+          layoutId={layoutId}
+          className="absolute inset-0 rounded-[var(--radius-lg)] bg-primary-soft -z-10"
+          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+        />
+      )}
+      <span className="block">{label}</span>
+    </Link>
+  );
+}
 
 export default function Nav() {
   const pathname = usePathname();
@@ -29,24 +66,16 @@ export default function Nav() {
         className="hidden md:block fixed top-0 left-0 right-0 z-20 border-b-2 border-border bg-bg-muted/95 backdrop-blur pt-[env(safe-area-inset-top)] shadow-[var(--shadow-card)]"
       >
         <div className="flex justify-around items-center h-14 max-w-lg mx-auto px-4">
-          {TABS.map(({ href, label, aria }) => {
-            const isActive = pathname === href || pathname.startsWith(href + "/");
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex-1 flex items-center justify-center min-h-[48px] rounded-[var(--radius-lg)] text-sm font-semibold transition-colors ${
-                  isActive
-                    ? "text-primary bg-primary-soft"
-                    : "text-fg-muted hover:text-foreground hover:bg-bg-subtle"
-                }`}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={aria}
-              >
-                {label}
-              </Link>
-            );
-          })}
+          {TABS.map(({ href, label, aria }) => (
+            <NavLink
+              key={href}
+              href={href}
+              label={label}
+              aria={aria}
+              layoutId="nav-active-desktop"
+              isActive={pathname === href || pathname.startsWith(href + "/")}
+            />
+          ))}
         </div>
       </nav>
 
@@ -58,24 +87,17 @@ export default function Nav() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex justify-around items-stretch gap-1 max-w-lg mx-auto px-2 py-2">
-          {TABS.map(({ href, label, aria }) => {
-            const isActive = pathname === href || pathname.startsWith(href + "/");
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`relative flex-1 flex flex-col items-center justify-center min-w-0 min-h-[48px] rounded-[var(--radius-lg)] text-sm font-semibold transition-colors ${
-                  isActive
-                    ? "text-primary bg-primary-soft"
-                    : "text-fg-muted hover:text-foreground active:bg-bg-subtle"
-                }`}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={aria}
-              >
-                <span className="block">{label}</span>
-              </Link>
-            );
-          })}
+          {TABS.map(({ href, label, aria }) => (
+            <NavLink
+              key={href}
+              href={href}
+              label={label}
+              aria={aria}
+              layoutId="nav-active-mobile"
+              isActive={pathname === href || pathname.startsWith(href + "/")}
+              className="flex-col active:bg-bg-subtle"
+            />
+          ))}
         </div>
       </nav>
     </>

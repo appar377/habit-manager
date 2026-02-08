@@ -30,6 +30,8 @@
   --radius-pill: var(--radius-pill);
   --shadow-card: var(--shadow-card);
   --shadow-button: var(--shadow-button);
+  --color-reward: var(--color-reward);
+  --color-reward-soft: var(--color-reward-soft);
 }
 
 /* ========== ベース（theme の変数を使用） ========== */
@@ -43,11 +45,45 @@ body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   min-height: 100dvh;
+  /* ごく薄いグラデで奥行き感 */
+  background-image: radial-gradient(ellipse 120% 80% at 50% -20%, var(--color-primary-soft) 0%, transparent 50%);
 }
 
 button,
 a {
   touch-action: manipulation;
+}
+
+/* ========== キーフレーム（ゲーム感） ========== */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.02); }
+}
+
+@keyframes progress-fill {
+  from { width: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(70, 192, 33, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(70, 192, 33, 0.35); }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 2.5s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
 }
 
 @supports (min-height: 100dvh) {

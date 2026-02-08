@@ -21,7 +21,7 @@ const Pressable = forwardRef<HTMLButtonElement, PressableProps>(
         type={type}
         whileTap={noScale ? undefined : { scale: TAP_SCALE }}
         transition={TAP_SPRING}
-        className={`touch-manipulation outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 dark:focus-visible:ring-neutral-500 ${className}`}
+        className={`touch-manipulation outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${className}`}
         {...rest}
       >
         {children}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { motion } from "framer-motion";
 import { useCheatDayAction } from "@/lib/actions";
 import { todayStr } from "@/lib/utils";
 import Button from "./ui/Button";
@@ -95,9 +96,11 @@ export default function CheatDayProgress({ status, dailyRatesInCycle }: Props) {
               </span>
             </div>
             <div className="relative h-5 rounded-full bg-bg-subtle overflow-visible">
-              <div
-                className="h-full rounded-full bg-primary transition-all min-w-[6px]"
-                style={{ width: `${Math.min(100, currentPercent)}%` }}
+              <motion.div
+                className="h-full rounded-full bg-primary min-w-[6px]"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, currentPercent)}%` }}
+                transition={{ type: "spring", stiffness: 300, damping: 28 }}
               />
               {/* 目標の目盛（達成率100%を幅として、requiredPercent の位置に線） */}
               {currentPercent < status.requiredPercent && status.requiredPercent <= 100 && (
