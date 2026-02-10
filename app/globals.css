@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap");
 @import "tailwindcss";
 @import "./theme.css";
 
@@ -23,6 +24,7 @@
   --color-danger-soft: var(--color-danger-soft);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
@@ -45,13 +47,49 @@ body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   min-height: 100dvh;
-  /* ごく薄いグラデで奥行き感 */
-  background-image: radial-gradient(ellipse 120% 80% at 50% -20%, var(--color-primary-soft) 0%, transparent 50%);
+  /* ネオン系の奥行き + 宇宙感 */
+  background-image:
+    radial-gradient(120% 80% at 20% -20%, rgba(0, 212, 255, 0.18) 0%, transparent 55%),
+    radial-gradient(120% 80% at 120% 0%, rgba(255, 79, 216, 0.18) 0%, transparent 55%),
+    linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-subtle) 100%);
+}
+
+body.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.35;
+  mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 60%);
+  z-index: -1;
 }
 
 button,
 a {
   touch-action: manipulation;
+  transition: transform var(--duration-fast) var(--ease-out-expo), box-shadow var(--duration-fast) var(--ease-out-expo), color var(--duration-fast) var(--ease-out-expo), background-color var(--duration-fast) var(--ease-out-expo), border-color var(--duration-fast) var(--ease-out-expo);
+}
+
+button:active,
+a:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+input,
+select,
+textarea {
+  transition: border-color var(--duration-fast) var(--ease-out-expo), box-shadow var(--duration-fast) var(--ease-out-expo), background-color var(--duration-fast) var(--ease-out-expo);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
 }
 
 /* ========== キーフレーム（ゲーム感） ========== */
@@ -70,8 +108,29 @@ a {
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 12px rgba(70, 192, 33, 0.2); }
-  50% { box-shadow: 0 0 20px rgba(70, 192, 33, 0.35); }
+  0%, 100% { box-shadow: 0 0 12px rgba(79, 70, 255, 0.25); }
+  50% { box-shadow: 0 0 24px rgba(0, 212, 255, 0.35); }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes sheen {
+  from { background-position: 0% 0%; }
+  to { background-position: 200% 0%; }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(180px) rotate(220deg); opacity: 0; }
+}
+
+@keyframes crown-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.02); }
 }
 
 .animate-pulse-soft {
@@ -86,6 +145,20 @@ a {
   animation: glow-pulse 2s ease-in-out infinite;
 }
 
+.page-stack > * {
+  animation: rise-in 0.5s var(--ease-out-expo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-stack > * {
+    animation: none;
+  }
+  * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
+
 @supports (min-height: 100dvh) {
   body {
     min-height: 100dvh;
@@ -97,12 +170,60 @@ a {
 }
 
 /* ========== 以下は機能別の上書き（FullCalendar など） ========== */
+.nav-dock {
+  box-shadow: 0 12px 30px rgba(10, 16, 32, 0.18);
+  border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
+  background-image: linear-gradient(180deg, color-mix(in oklab, var(--color-bg-muted) 80%, transparent), var(--color-bg-muted));
+}
+.nav-tab {
+  position: relative;
+  transition: transform var(--duration-fast) var(--ease-out-expo), color var(--duration-fast) var(--ease-out-expo);
+}
+.nav-tab:hover {
+  transform: translateY(-1px);
+}
+.nav-tab-active {
+  text-shadow: 0 0 12px color-mix(in oklab, var(--color-primary) 60%, transparent);
+}
+.nav-tab-glow {
+  box-shadow: 0 0 20px color-mix(in oklab, var(--color-primary) 40%, transparent), inset 0 0 20px rgba(255,255,255,0.5);
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.confetti span {
+  position: absolute;
+  width: 6px;
+  height: 10px;
+  opacity: 0;
+  animation: confetti-fall 2.2s linear infinite;
+}
+.confetti span:nth-child(odd) {
+  border-radius: 2px;
+}
+.confetti span:nth-child(even) {
+  border-radius: 999px;
+}
+
+.podium-crown {
+  animation: crown-bounce 1.8s ease-in-out infinite;
+}
+
+.plan-timeline-wrapper {
+  background: linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2));
+  box-shadow: var(--shadow-card);
+  border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
+}
 .plan-timeline-wrapper .fc {
   --fc-border-color: var(--color-border);
   --fc-page-bg-color: var(--color-bg-muted);
   --fc-neutral-bg-color: var(--color-bg-subtle);
-  --fc-event-bg-color: oklch(0.88 0.06 250);
-  --fc-event-border-color: oklch(0.78 0.08 250);
+  --fc-event-bg-color: color-mix(in oklab, var(--color-primary) 18%, var(--color-bg-muted));
+  --fc-event-border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-border));
   --fc-event-text-color: var(--color-fg);
   --fc-today-bg-color: transparent;
   --fc-small-font-size: var(--text-xs);
@@ -130,13 +251,16 @@ a {
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
   border-width: 1px;
-  background: oklch(0.88 0.06 250);
-  border-color: oklch(0.78 0.08 250);
+  background: color-mix(in oklab, var(--color-primary) 18%, var(--color-bg-muted));
+  border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-border));
   color: var(--color-fg);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--duration-normal) var(--ease-out-expo), background-color var(--duration-normal) var(--ease-out-expo), border-color var(--duration-normal) var(--ease-out-expo), box-shadow var(--duration-normal) var(--ease-out-expo);
 }
 .plan-timeline-wrapper .fc .fc-event:hover {
-  background: oklch(0.85 0.07 250);
-  border-color: oklch(0.72 0.09 250);
+  background: color-mix(in oklab, var(--color-primary) 26%, var(--color-bg-muted));
+  border-color: color-mix(in oklab, var(--color-primary) 55%, var(--color-border));
+  transform: translateY(-1px);
 }
 .plan-timeline-wrapper .fc-event-completed .fc-event-main {
   text-decoration: line-through;

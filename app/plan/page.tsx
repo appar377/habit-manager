@@ -6,7 +6,7 @@ import StreakCalendar from "@/components/StreakCalendar";
 import CheatDayOnboarding from "@/components/CheatDayOnboarding";
 import CheatDayStatus from "@/components/CheatDayStatus";
 import NotificationScheduler from "@/components/NotificationScheduler";
-import { store } from "@/lib/store";
+import { getStoreForUser } from "@/lib/app-data";
 import { todayStr, parseDate, sortHabitsByRecentUsage, getWeekDates, getMonthCells } from "@/lib/utils";
 
 type PlanPageProps = { searchParams?: Promise<{ date?: string; view?: string }> | { date?: string; view?: string } };
@@ -27,6 +27,7 @@ function resolveView(params: { view?: string }): "day" | "week" | "month" {
 
 export default async function PlanPage(props: PlanPageProps) {
   const params = await Promise.resolve(props.searchParams ?? {}).then((p) => (p ?? {}));
+  const { store } = await getStoreForUser();
   const date = resolveDate(params);
   const view = resolveView(params);
   const today = todayStr();

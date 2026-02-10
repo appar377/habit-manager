@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { Habit } from "@/lib/store";
 import type { ScheduleRule } from "@/lib/store";
-import TrendIcon from "./TrendIcon";
 import HabitForm from "./HabitForm";
 import Button from "./ui/Button";
 
@@ -40,6 +39,12 @@ function scheduleFrequencyLabel(habit: Habit): string {
   return "予定あり";
 }
 
+function scheduleTimeLabel(habit: Habit): string {
+  if (!habit.scheduleEnabled) return "";
+  if (!habit.scheduleStart || !habit.scheduleEnd) return "";
+  return `${habit.scheduleStart}–${habit.scheduleEnd}`;
+}
+
 type Props = {
   habit: Habit;
   trend: Trend;
@@ -64,20 +69,28 @@ export default function HabitCard({ habit, trend, onUpdate }: Props) {
               {habit.type === "exercise" ? "運動" : "学習"}
             </span>
             {habit.scheduleEnabled && (
-              <span className="text-[10px] font-medium text-fg-muted">予定に表示</span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-bg-subtle text-fg-muted">
+                予定ON
+              </span>
             )}
           </div>
           <p className="font-semibold text-foreground truncate">{habit.name}</p>
           <p className="text-xs text-fg-muted mt-0.5">
             目標 {targetLabel(habit)}
             {habit.scheduleEnabled && (
-              <span className="ml-2"> · {scheduleFrequencyLabel(habit)}</span>
+              <>
+                <span className="ml-2">· {scheduleFrequencyLabel(habit)}</span>
+                {scheduleTimeLabel(habit) && <span className="ml-2">· {scheduleTimeLabel(habit)}</span>}
+              </>
             )}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <TrendIcon trend={trend} className="shrink-0" />
-          <Button variant="ghost" className="min-h-[36px] px-2 text-xs" onClick={() => setEditing(true)}>
+          <Button
+            variant="ghost"
+            className="min-h-[36px] px-2 text-xs relative z-10 pointer-events-auto"
+            onClick={() => setEditing(true)}
+          >
             編集
           </Button>
         </div>

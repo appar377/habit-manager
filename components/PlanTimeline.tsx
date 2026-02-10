@@ -11,10 +11,10 @@ import { toggleTodoCompletionAction, updatePlanOverrideAction } from "@/lib/acti
 import type { Habit } from "@/lib/store";
 import PlanEventDetailSheet from "./PlanEventDetailSheet";
 
-const RANGE_START = "06:00:00";
+const RANGE_START = "00:00:00";
 const RANGE_END = "24:00:00";
-/** 06:00〜24:00 の18時間を15分スロットで表示する高さ（px）。ラッパーがスクロールする。 */
-const TOTAL_SLOTS = (18 * 60) / 15;
+/** 00:00〜24:00 の24時間を15分スロットで表示する高さ（px）。ラッパーがスクロールする。 */
+const TOTAL_SLOTS = (24 * 60) / 15;
 const SLOT_HEIGHT_PX = 24;
 const TIMELINE_CONTENT_HEIGHT_PX = TOTAL_SLOTS * SLOT_HEIGHT_PX;
 

@@ -11,23 +11,32 @@ export default function SimpleLineChart({
   data,
   height = 160,
   showAverage = true,
+  xLabel = "日付",
+  yLabel = "値",
+  yUnit,
 }: {
   data: { date: string; value: number }[];
   height?: number;
   showAverage?: boolean;
+  xLabel?: string;
+  yLabel?: string;
+  yUnit?: string;
 }) {
   const width = 400;
-  const pad = 28;
-  const chartWidth = width - pad * 2;
-  const chartHeight = height - pad * 2 - 20;
+  const padLeft = 48;
+  const padRight = 18;
+  const padTop = 16;
+  const padBottom = 28;
+  const chartWidth = width - padLeft - padRight;
+  const chartHeight = height - padTop - padBottom;
 
   const values = data.map((d) => d.value);
   const max = Math.max(1, ...values);
   const min = Math.min(0, ...values);
   const span = max - min || 1;
 
-  const x = (i: number) => pad + (i * chartWidth) / Math.max(1, data.length - 1);
-  const y = (v: number) => pad + ((max - v) * chartHeight) / span;
+  const x = (i: number) => padLeft + (i * chartWidth) / Math.max(1, data.length - 1);
+  const y = (v: number) => padTop + ((max - v) * chartHeight) / span;
 
   const avg =
     showAverage && data.length > 0
@@ -38,9 +47,15 @@ export default function SimpleLineChart({
   const linePoints = data.map((d, i) => `${x(i)},${y(d.value)}`).join(" ");
   const areaPath =
     data.length > 0
-      ? `M ${x(0)},${pad + chartHeight} L ${linePoints} L ${x(data.length - 1)},${pad + chartHeight} Z`
+      ? `M ${x(0)},${padTop + chartHeight} L ${linePoints} L ${x(data.length - 1)},${padTop + chartHeight} Z`
       : "";
   const linePath = data.length > 0 ? `M ${data.map((d, i) => `${x(i)} ${y(d.value)}`).join(" L ")}` : "";
+  const mid = (max + min) / 2;
+
+  function formatValue(v: number): string {
+    const rounded = Math.round(v * 10) / 10;
+    return yUnit ? `${rounded}${yUnit}` : String(rounded);
+  }
 
   return (
     <motion.div
@@ -62,6 +77,45 @@ export default function SimpleLineChart({
             <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.35" />
           </linearGradient>
         </defs>
+        <line
+          x1={padLeft}
+          y1={padTop}
+          x2={padLeft}
+          y2={padTop + chartHeight}
+          stroke="var(--color-border)"
+          strokeWidth="1"
+        />
+        <line
+          x1={padLeft}
+          y1={padTop + chartHeight}
+          x2={width - padRight}
+          y2={padTop + chartHeight}
+          stroke="var(--color-border)"
+          strokeWidth="1"
+        />
+        {[max, mid, min].map((v, i) => (
+          <g key={`tick-${i}`}>
+            <line
+              x1={padLeft}
+              y1={y(v)}
+              x2={width - padRight}
+              y2={y(v)}
+              stroke="var(--color-border)"
+              strokeWidth="1"
+              opacity={i === 1 ? 0.35 : 0.2}
+            />
+            <text
+              x={padLeft - 6}
+              y={y(v)}
+              textAnchor="end"
+              dominantBaseline="middle"
+              fill="var(--color-fg-muted)"
+              fontSize="10"
+            >
+              {formatValue(v)}
+            </text>
+          </g>
+        ))}
         {areaPath && (
           <motion.path
             d={areaPath}
@@ -73,9 +127,9 @@ export default function SimpleLineChart({
         )}
         {avgY != null && (
           <line
-            x1={pad}
+            x1={padLeft}
             y1={avgY}
-            x2={width - pad}
+            x2={width - padRight}
             y2={avgY}
             stroke="var(--color-primary)"
             strokeWidth="1"
@@ -110,9 +164,13 @@ export default function SimpleLineChart({
           />
         ))}
       </svg>
-      <div className="flex justify-between text-xs text-fg-muted mt-2 tabular-nums">
+      <div className="flex justify-between text-[11px] text-fg-muted mt-2 tabular-nums">
         <span>{data[0] ? formatDateShort(data[0].date) : ""}</span>
         <span>{data[data.length - 1] ? formatDateShort(data[data.length - 1].date) : ""}</span>
+      </div>
+      <div className="flex items-center justify-between text-[11px] text-fg-subtle mt-1">
+        <span>Y軸: {yLabel}{yUnit ? `（${yUnit}）` : ""}</span>
+        <span>X軸: {xLabel}</span>
       </div>
     </motion.div>
   );

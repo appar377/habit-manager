@@ -37,13 +37,16 @@ export default function RivalForm() {
 
   return (
     <form onSubmit={submit} className="rounded-[var(--radius-xl)] border-2 border-border bg-bg-subtle p-4 space-y-3">
+      <p className="text-xs text-fg-muted">
+        数値は任意。空欄でも追加できます。
+      </p>
       <div>
-        <Label>名前</Label>
+        <Label>表示名</Label>
         <Input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="ライバルの名前"
+          placeholder="フレンドの名前"
           required
         />
       </div>
@@ -97,7 +100,7 @@ export default function RivalForm() {
         </div>
       </div>
       <Button type="submit" disabled={isPending}>
-        {isPending ? "追加中…" : "ライバルを追加"}
+        {isPending ? "追加中…" : "フレンドを追加"}
       </Button>
     </form>
   );

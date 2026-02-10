@@ -13,6 +13,7 @@ const TABS = [
   { href: "/habits", label: "習慣", aria: "習慣を管理" },
   { href: "/review", label: "分析", aria: "分析を見る" },
   { href: "/ranking", label: "ランキング", aria: "ランキングを見る" },
+  { href: "/settings", label: "設定", aria: "設定を開く" },
 ] as const;
 
 const NAV_HEIGHT = 56;
@@ -35,8 +36,8 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`relative flex-1 flex items-center justify-center min-h-[48px] min-w-0 rounded-[var(--radius-lg)] text-sm font-semibold transition-colors duration-200 ${
-        isActive ? "text-primary" : "text-fg-muted hover:text-foreground hover:bg-bg-subtle"
+      className={`nav-tab relative flex-1 flex items-center justify-center min-h-[48px] min-w-0 rounded-[var(--radius-lg)] text-sm font-semibold ${
+        isActive ? "nav-tab-active text-primary" : "text-fg-muted hover:text-foreground hover:bg-bg-subtle"
       } ${className}`}
       aria-current={isActive ? "page" : undefined}
       aria-label={aria}
@@ -44,7 +45,7 @@ function NavLink({
       {isActive && (
         <motion.span
           layoutId={layoutId}
-          className="absolute inset-0 rounded-[var(--radius-lg)] bg-primary-soft -z-10"
+          className="nav-tab-glow absolute inset-0 rounded-[var(--radius-lg)] bg-primary-soft -z-10"
           transition={{ type: "spring", stiffness: 400, damping: 32 }}
         />
       )}
@@ -62,7 +63,7 @@ export default function Nav() {
       <nav
         role="navigation"
         aria-label="メイン"
-        className="hidden md:block fixed top-0 left-0 right-0 z-20 border-b-2 border-border bg-bg-muted/95 backdrop-blur pt-[env(safe-area-inset-top)] shadow-[var(--shadow-card)]"
+        className="nav-dock hidden md:block fixed top-0 left-0 right-0 z-20 border-b-2 border-border bg-bg-muted/90 backdrop-blur pt-[env(safe-area-inset-top)]"
       >
         <div className="flex justify-around items-center h-14 max-w-lg mx-auto px-4">
           {TABS.map(({ href, label, aria }) => (
@@ -82,7 +83,7 @@ export default function Nav() {
       <nav
         role="navigation"
         aria-label="メイン"
-        className="fixed bottom-0 left-0 right-0 z-20 md:hidden border-t-2 border-border bg-bg-muted/95 backdrop-blur shadow-[0_-2px 12px rgba(0,0,0,0.06)]"
+        className="nav-dock fixed bottom-0 left-0 right-0 z-20 md:hidden border-t-2 border-border bg-bg-muted/90 backdrop-blur"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex justify-around items-stretch gap-1 max-w-lg mx-auto px-2 py-2">

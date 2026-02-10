@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/store";
 import type { HabitType } from "@/lib/store";
+import { getOrCreateUser } from "@/lib/user";
+import { listHabits, addHabit, updateHabit } from "@/lib/db-store";
 
 export async function GET(req: Request) {
+  const user = await getOrCreateUser();
   const { searchParams } = new URL(req.url);
   const includeArchived = searchParams.get("archived") === "1";
-  const habits = store.listHabits(includeArchived);
+  const habits = await listHabits(user.id, includeArchived);
   return NextResponse.json({ habits });
 }
 
 export async function POST(req: Request) {
+  const user = await getOrCreateUser();
   const body = await req.json();
   const {
     name,
@@ -34,7 +37,7 @@ export async function POST(req: Request) {
   if (type !== "exercise" && type !== "study") {
     return NextResponse.json({ error: "type must be exercise or study" }, { status: 400 });
   }
-  const habit = store.addHabit({
+  const habit = await addHabit(user.id, {
     name: String(name).trim(),
     type: type as HabitType,
     targetSets: targetSets != null ? Number(targetSets) : undefined,
@@ -53,6 +56,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  const user = await getOrCreateUser();
   const body = await req.json();
   const {
     id,
@@ -89,7 +93,7 @@ export async function PATCH(req: Request) {
   if (scheduleStart !== undefined) partial.scheduleStart = scheduleStart;
   if (scheduleEnd !== undefined) partial.scheduleEnd = scheduleEnd;
   if (priority !== undefined) partial.priority = Number(priority);
-  const habit = store.updateHabit(id, partial as Parameters<typeof store.updateHabit>[1]);
+  const habit = await updateHabit(user.id, id, partial as Parameters<typeof updateHabit>[2]);
   if (!habit) return NextResponse.json({ error: "habit not found" }, { status: 404 });
   return NextResponse.json({ habit });
 }

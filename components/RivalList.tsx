@@ -11,6 +11,16 @@ type Props = {
   rivals: Rival[];
 };
 
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0])
+    .join("")
+    .toUpperCase();
+}
+
 export default function RivalList({ rivals }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -33,19 +43,44 @@ export default function RivalList({ rivals }: Props) {
               startTransition={startTransition}
             />
           ) : (
-            <div className="flex justify-between items-start gap-2">
-              <div>
-                <p className="font-semibold text-foreground">{r.name}</p>
-                <p className="text-xs text-fg-muted mt-0.5">
-                  {[
-                    r.logStreak != null && `記録${r.logStreak}日`,
-                    r.planStreak != null && `達成${r.planStreak}日`,
-                    r.comebackCount != null && `立ち上がり${r.comebackCount}回`,
-                    r.achievementRate != null && `達成率${Math.round(r.achievementRate * 100)}%`,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "数値未入力"}
-                </p>
+            <div className="flex justify-between items-start gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="h-12 w-12 rounded-[var(--radius-pill)] bg-primary-soft/70 border border-border flex items-center justify-center font-bold text-primary">
+                  {initials(r.name)}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground truncate">{r.name}</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {r.logStreak != null && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-[999px] bg-bg-subtle text-fg-muted">
+                        記録 {r.logStreak}日
+                      </span>
+                    )}
+                    {r.planStreak != null && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-[999px] bg-bg-subtle text-fg-muted">
+                        達成 {r.planStreak}日
+                      </span>
+                    )}
+                    {r.comebackCount != null && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-[999px] bg-bg-subtle text-fg-muted">
+                        立ち上がり {r.comebackCount}回
+                      </span>
+                    )}
+                    {r.achievementRate != null && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-[999px] bg-primary-soft/60 text-primary">
+                        達成率 {Math.round(r.achievementRate * 100)}%
+                      </span>
+                    )}
+                    {r.logStreak == null &&
+                      r.planStreak == null &&
+                      r.comebackCount == null &&
+                      r.achievementRate == null && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-[999px] bg-bg-subtle text-fg-subtle">
+                          数値未入力
+                        </span>
+                      )}
+                  </div>
+                </div>
               </div>
               <div className="flex gap-1 shrink-0">
                 <Button variant="ghost" className="min-h-[36px] px-2 text-xs" onClick={() => setEditingId(r.id)}>
@@ -55,8 +90,10 @@ export default function RivalList({ rivals }: Props) {
                   variant="ghost"
                   className="min-h-[36px] px-2 text-xs text-fg-muted hover:text-danger"
                   onClick={() => {
-                    startTransition(async () => {
-                      await removeRivalAction(r.id);
+                    startTransition(() => {
+                      void (async () => {
+                        await removeRivalAction(r.id);
+                      })();
                     });
                   }}
                   disabled={isPending}
@@ -83,7 +120,7 @@ function RivalEditForm({
   onCancel: () => void;
   onSave: () => void;
   isPending: boolean;
-  startTransition: (fn: () => Promise<unknown>) => void;
+  startTransition: (fn: () => void) => void;
 }) {
   const [name, setName] = useState(rival.name);
   const [logStreak, setLogStreak] = useState(rival.logStreak?.toString() ?? "");
@@ -95,16 +132,18 @@ function RivalEditForm({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    startTransition(async () => {
-      await updateRivalAction(rival.id, {
-        name: name.trim(),
-        logStreak: logStreak !== "" ? Number(logStreak) : undefined,
-        planStreak: planStreak !== "" ? Number(planStreak) : undefined,
-        comebackCount: comebackCount !== "" ? Number(comebackCount) : undefined,
-        achievementRate:
-          achievementRate !== "" ? Math.min(1, Math.max(0, Number(achievementRate) / 100)) : undefined,
-      });
-      onSave();
+    startTransition(() => {
+      void (async () => {
+        await updateRivalAction(rival.id, {
+          name: name.trim(),
+          logStreak: logStreak !== "" ? Number(logStreak) : undefined,
+          planStreak: planStreak !== "" ? Number(planStreak) : undefined,
+          comebackCount: comebackCount !== "" ? Number(comebackCount) : undefined,
+          achievementRate:
+            achievementRate !== "" ? Math.min(1, Math.max(0, Number(achievementRate) / 100)) : undefined,
+        });
+        onSave();
+      })();
     });
   }
 

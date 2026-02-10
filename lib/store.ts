@@ -300,7 +300,7 @@ export const store = {
   })(),
 
   /** チートデイ設定。ダミーでは「週1回（標準）」を選択済み。 */
-  cheatDayConfig: { ...CHEAT_DAY_PRESETS[1], effect: "both" as CheatDayEffect },
+  cheatDayConfig: { ...CHEAT_DAY_PRESETS[1], effect: "both" as CheatDayEffect } as CheatDayConfig,
   /** チートデイを使用した日（日付＋任意メモ）。直近周期外を1件。 */
   cheatDaysUsed: (() => {
     const t = new Date();

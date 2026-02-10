@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useSyncExternalStore } from "react";
 import { todayStr } from "@/lib/utils";
 import {
   isNotificationSupported,
@@ -21,6 +21,13 @@ type Props = {
 export default function NotificationScheduler({ date, todosWithTime }: Props) {
   const [enabled, setEnabledState] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const supported = isClient && isNotificationSupported();
+  const today = isClient ? todayStr() : null;
 
   const syncFromStorage = useCallback(() => {
     setEnabledState(getNotificationsEnabled());
@@ -28,13 +35,14 @@ export default function NotificationScheduler({ date, todosWithTime }: Props) {
   }, []);
 
   useEffect(() => {
-    syncFromStorage();
-  }, [syncFromStorage]);
+    if (!isClient) return;
+    queueMicrotask(syncFromStorage);
+  }, [isClient, syncFromStorage]);
 
   useEffect(() => {
-    if (!isNotificationSupported()) return;
-    setPermission(Notification.permission);
-  }, [enabled]);
+    if (!supported) return;
+    queueMicrotask(() => setPermission(Notification.permission));
+  }, [enabled, supported]);
 
   const handleToggle = useCallback(async () => {
     if (!isNotificationSupported()) return;
@@ -51,10 +59,11 @@ export default function NotificationScheduler({ date, todosWithTime }: Props) {
     }
   }, [enabled]);
 
-  const today = todayStr();
-  const isToday = date === today;
-  const todosForNotify = todosWithTime.map((t) => ({ title: t.title, start: t.start }));
-  const scheduleKey = todosForNotify.map((t) => `${t.start}-${t.title}`).join("|");
+  const isToday = today ? date === today : false;
+  const todosForNotify = useMemo(
+    () => todosWithTime.map((t) => ({ title: t.title, start: t.start })),
+    [todosWithTime]
+  );
 
   useEffect(() => {
     if (!enabled || !isToday || permission !== "granted" || todosForNotify.length === 0) {
@@ -62,9 +71,9 @@ export default function NotificationScheduler({ date, todosWithTime }: Props) {
     }
     const cleanup = scheduleNotifications(date, todosForNotify);
     return cleanup;
-  }, [enabled, isToday, permission, date, scheduleKey]);
+  }, [enabled, isToday, permission, date, todosForNotify]);
 
-  if (!isNotificationSupported()) return null;
+  if (!isClient || !supported) return null;
 
   return (
     <div className="py-2">

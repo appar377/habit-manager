@@ -1,7 +1,8 @@
 import HabitsList from "@/components/HabitsList";
-import { store } from "@/lib/store";
+import { getStoreForUser } from "@/lib/app-data";
 
 export default async function HabitsPage() {
+  const { store } = await getStoreForUser();
   const habits = store.listHabits(false);
 
   const habitsWithTrend = habits.map((habit) => ({

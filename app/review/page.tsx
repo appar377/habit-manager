@@ -12,7 +12,7 @@ import StreakCalendar from "@/components/StreakCalendar";
 import StreakCards from "@/components/StreakCards";
 import { buildReviewSummary } from "@/lib/review-summary";
 import type { Habit } from "@/lib/store";
-import { store } from "@/lib/store";
+import { getStoreForUser } from "@/lib/app-data";
 import { getTrend } from "@/lib/utils";
 
 const RANGE_DAYS: Record<ReviewRange, number> = { week: 7, month: 30, all: 90 };
@@ -29,6 +29,7 @@ function summarize(series: { date: string; value: number }[], half: number) {
 
 /** 習慣別トレンド（後半 vs 前半）。上位2件を後半合計で選ぶ。 */
 function habitSummaryLines(
+  store: { seriesByHabit: (habitId: string, metric: "volume" | "durationMin", days: number) => { date: string; value: number }[] },
   habits: Habit[],
   days: number,
   maxLines = 2
@@ -60,6 +61,7 @@ function resolveRange(params: { range?: string }): ReviewRange {
 
 export default async function ReviewPage(props: ReviewPageProps) {
   const params = await Promise.resolve(props.searchParams ?? {}).then((p) => (p ?? {}));
+  const { store } = await getStoreForUser();
   const range = resolveRange(params);
   const habitId = params.habit && params.habit.trim() ? params.habit.trim() : null;
   const days = RANGE_DAYS[range];
@@ -103,7 +105,7 @@ export default async function ReviewPage(props: ReviewPageProps) {
     const habitAchievement = store.getHabitAchievementRate(singleHabit.id, days);
     const todayHabit = store.getHabitAchievementRate(singleHabit.id, 1);
     const unit = singleHabit.type === "exercise" ? "rep" : "分";
-    const metricLabel = singleHabit.type === "exercise" ? "Volume" : "Duration";
+    const metricLabel = singleHabit.type === "exercise" ? "ボリューム" : "時間";
     const activityCalendarDaysSingle = store.getActivityForLastDays(42);
 
     const singleStreakContent = (
@@ -147,7 +149,14 @@ export default async function ReviewPage(props: ReviewPageProps) {
           unit={unit}
           lastValue={habitSum.lastSum}
         />
-        <SimpleLineChart data={habitSeries} height={140} showAverage />
+        <SimpleLineChart
+          data={habitSeries}
+          height={140}
+          showAverage
+          xLabel="日付"
+          yLabel={metricLabel}
+          yUnit={unit}
+        />
       </section>
     );
 
@@ -169,7 +178,7 @@ export default async function ReviewPage(props: ReviewPageProps) {
   const durationSeries = store.series("durationMin", days);
   const volume = summarize(volumeSeries, half);
   const duration = summarize(durationSeries, half);
-  const habitLines = habitSummaryLines(habits, days, 2);
+  const habitLines = habitSummaryLines(store, habits, days, 2);
   const summaryLines = buildReviewSummary({
     volumeTrend: volume.trend,
     durationTrend: duration.trend,
@@ -254,7 +263,14 @@ export default async function ReviewPage(props: ReviewPageProps) {
           lastValue={duration.lastSum}
         />
       </div>
-      <SimpleLineChart data={volumeSeries} height={140} showAverage />
+      <SimpleLineChart
+        data={volumeSeries}
+        height={140}
+        showAverage
+        xLabel="日付"
+        yLabel="ボリューム"
+        yUnit="rep"
+      />
     </section>
   );
 

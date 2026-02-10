@@ -254,7 +254,7 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
           {isPending ? "保存中…" : isEdit ? "更新" : "追加"}
         </Button>
         {onCancel && (
-          <Button type="button" variant="secondary" onClick={onCancel}>
+          <Button type="button" variant="secondary" className="whitespace-nowrap min-w-[100px]" onClick={onCancel}>
             キャンセル
           </Button>
         )}

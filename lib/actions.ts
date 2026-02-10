@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { store } from "@/lib/store";
 import type { CheatDayConfig, Rival } from "@/lib/store";
+import { getOrCreateUser } from "@/lib/user";
+import { addHabit, updateHabit, archiveHabit, addLog, deleteLogByHabitAndDate, getHabit, listLogs } from "@/lib/db-store";
+import { getFeedbackResult } from "@/lib/feedback";
 
 function todayStr() {
   const d = new Date();
@@ -31,6 +34,7 @@ export async function addLogAction(form: {
   end?: string;
   durationMin?: number;
 }): Promise<{ feedback: "up" | "down" | "same" }> {
+  const user = await getOrCreateUser();
   let start = form.start;
   let end = form.end;
   if (form.durationMin != null && form.durationMin > 0) {
@@ -38,16 +42,24 @@ export async function addLogAction(form: {
     start = t.start;
     end = t.end;
   }
-  const log = store.addLog({
-    date: form.date || todayStr(),
+  const date = form.date || todayStr();
+  const log = await addLog(user.id, {
+    date,
     habitId: form.habitId,
     sets: form.sets,
     reps: form.reps,
     start,
     end,
   });
-  const habit = store.listHabits().find((h) => h.id === form.habitId);
-  const feedback = habit ? store.getFeedback(log, habit) : "same";
+  const habit = await getHabit(user.id, form.habitId);
+  let feedback: "up" | "down" | "same" = "same";
+  if (habit) {
+    const prevLogs = (await listLogs(user.id))
+      .filter((l) => l.habitId === form.habitId && l.id !== log.id)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    const prev = prevLogs[0] ?? null;
+    feedback = getFeedbackResult(log, prev, habit);
+  }
   revalidatePath("/capture");
   revalidatePath("/review");
   revalidatePath("/plan");
@@ -68,7 +80,8 @@ export async function addHabitAction(form: {
   scheduleEnd?: string;
   priority?: number;
 }) {
-  const habit = store.addHabit({
+  const user = await getOrCreateUser();
+  const habit = await addHabit(user.id, {
     name: form.name.trim(),
     type: form.type,
     targetSets: form.targetSets,
@@ -105,7 +118,8 @@ export async function updateHabitAction(
     priority?: number;
   }
 ) {
-  const habit = store.updateHabit(id, partial);
+  const user = await getOrCreateUser();
+  const habit = await updateHabit(user.id, id, partial);
   revalidatePath("/habits");
   revalidatePath("/capture");
   revalidatePath("/plan");
@@ -113,7 +127,8 @@ export async function updateHabitAction(
 }
 
 export async function archiveHabitAction(id: string) {
-  const habit = store.archiveHabit(id);
+  const user = await getOrCreateUser();
+  const habit = await archiveHabit(user.id, id);
   revalidatePath("/habits");
   revalidatePath("/capture");
   return { habit };
@@ -121,9 +136,10 @@ export async function archiveHabitAction(id: string) {
 
 /** 時間指定なしの表示順を更新。habitIds の並びがそのまま優先度 1,2,3... になる。 */
 export async function updatePlanOrderAction(orderedHabitIds: string[]): Promise<{ error?: string }> {
-  orderedHabitIds.forEach((id, index) => {
-    store.updateHabit(id, { priority: index + 1 });
-  });
+  const user = await getOrCreateUser();
+  for (let i = 0; i < orderedHabitIds.length; i++) {
+    await updateHabit(user.id, orderedHabitIds[i], { priority: i + 1 });
+  }
   revalidatePath("/plan");
   revalidatePath("/habits");
   return {};
@@ -136,22 +152,18 @@ export async function toggleTodoCompletionAction(
   done: boolean,
   todo: { start: string; end: string }
 ): Promise<{ error?: string }> {
-  const habit = store.getHabit(habitId);
+  const user = await getOrCreateUser();
+  const habit = await getHabit(user.id, habitId);
   if (!habit) {
     return { error: "habit not found" };
   }
   if (done) {
     if (habit.type === "study") {
-      store.addLog({
-        date,
-        habitId,
-        start: todo.start,
-        end: todo.end,
-      });
+      await addLog(user.id, { date, habitId, start: todo.start, end: todo.end });
     } else {
       const sets = habit.targetSets ?? 0;
       const reps = habit.targetReps ?? 0;
-      store.addLog({
+      await addLog(user.id, {
         date,
         habitId,
         sets: sets > 0 ? sets : undefined,
@@ -159,7 +171,7 @@ export async function toggleTodoCompletionAction(
       });
     }
   } else {
-    store.deleteLogByHabitAndDate(habitId, date);
+    await deleteLogByHabitAndDate(user.id, habitId, date);
   }
   revalidatePath("/plan");
   revalidatePath("/review");
@@ -172,9 +184,10 @@ export async function saveLogDetailsAction(
   date: string,
   details: { sets?: number; reps?: number; durationMin?: number; start?: string; end?: string }
 ): Promise<{ error?: string }> {
-  const habit = store.getHabit(habitId);
+  const user = await getOrCreateUser();
+  const habit = await getHabit(user.id, habitId);
   if (!habit) return { error: "habit not found" };
-  const existing = store.listLogs(date).find((l) => l.habitId === habitId);
+  const existing = (await listLogs(user.id, date)).find((l) => l.habitId === habitId);
   let start = details.start ?? existing?.start;
   let end = details.end ?? existing?.end;
   if (details.durationMin != null && details.durationMin > 0) {
@@ -182,8 +195,8 @@ export async function saveLogDetailsAction(
     start = t.start;
     end = t.end;
   }
-  store.deleteLogByHabitAndDate(habitId, date);
-  store.addLog({
+  await deleteLogByHabitAndDate(user.id, habitId, date);
+  await addLog(user.id, {
     date,
     habitId,
     sets: details.sets ?? existing?.sets,

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Nav from "@/components/Nav";
+import UserBootstrap from "@/components/UserBootstrap";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,19 +21,20 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#58cc02" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a18" },
+    { media: "(prefers-color-scheme: light)", color: "#4f46ff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0f1a" },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className="min-h-[100dvh] font-sans antialiased bg-background text-foreground">
-        <main className="mx-auto max-w-lg min-h-[100dvh] px-4 pt-4 pb-[calc(var(--nav-height)+env(safe-area-inset-bottom)+1rem)] md:pt-[calc(var(--nav-height)+env(safe-area-inset-top)+0.5rem)] md:pb-6">
+      <body className="app-shell min-h-[100dvh] font-sans antialiased bg-background text-foreground">
+        <main className="page-stack mx-auto max-w-lg min-h-[100dvh] px-4 pt-4 pb-[calc(var(--nav-height)+env(safe-area-inset-bottom)+1rem)] md:pt-[calc(var(--nav-height)+env(safe-area-inset-top)+0.5rem)] md:pb-6">
           {children}
         </main>
         <Nav />
+        <UserBootstrap />
       </body>
     </html>
   );
