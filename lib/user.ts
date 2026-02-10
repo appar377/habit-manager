@@ -24,7 +24,7 @@ export async function getOrCreateUser(displayName = "ユーザー") {
 
 export async function ensureUserRow(id: string, secret: string, displayName = "ユーザー") {
   await ensureSchema();
-  const rows = await sql`SELECT id FROM users WHERE id = ${id} LIMIT 1;`;
+  const rows = (await sql`SELECT id FROM users WHERE id = ${id} LIMIT 1;`) as { id: string }[];
   if (rows.length === 0) {
     const friendCode = await createUniqueFriendCode();
     await sql`
