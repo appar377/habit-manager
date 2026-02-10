@@ -29,9 +29,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing_auth" }, { status: 400 });
   }
 
-  const userRows = await sql`
+  const userRows = (await sql`
     SELECT id FROM users WHERE id = ${userId} AND secret = ${secret} LIMIT 1;
-  `;
+  `) as { id: string }[];
   if (userRows.length === 0) {
     return NextResponse.json({ error: "invalid_auth" }, { status: 403 });
   }

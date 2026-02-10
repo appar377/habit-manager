@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   await ensureUserRow(userId, userSecret);
 
   // ensure friend_code exists
-  const rows = await sql`SELECT friend_code FROM users WHERE id = ${userId} LIMIT 1;`;
+  const rows = (await sql`SELECT friend_code FROM users WHERE id = ${userId} LIMIT 1;`) as { friend_code: string | null }[];
   if (!rows[0]?.friend_code) {
     const friendCode = await createUniqueFriendCode();
     await sql`UPDATE users SET friend_code = ${friendCode} WHERE id = ${userId};`;

@@ -81,7 +81,7 @@ export function generateFriendCode(): string {
 export async function createUniqueFriendCode(): Promise<string> {
   for (let i = 0; i < 6; i++) {
     const code = generateFriendCode();
-    const exists = await sql`SELECT 1 FROM users WHERE friend_code = ${code} LIMIT 1;`;
+    const exists = (await sql`SELECT 1 FROM users WHERE friend_code = ${code} LIMIT 1;`) as { "?column?": number }[];
     if (exists.length === 0) return code;
   }
   return generateFriendCode();
