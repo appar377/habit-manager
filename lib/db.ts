@@ -1,9 +1,19 @@
 import { neon } from "@neondatabase/serverless";
 
-const databaseUrl = process.env.DATABASE_URL;
+let client: ReturnType<typeof neon> | null = null;
 
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is not set");
+function getClient() {
+  if (client) return client;
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is not set");
+  }
+  client = neon(databaseUrl);
+  return client;
 }
 
-export const sql = neon(databaseUrl);
+export const sql: ReturnType<typeof neon> = ((strings, ...values) => {
+  const c = getClient();
+  // @neondatabase/serverless sql tag function
+  return (c as any)(strings as any, ...values);
+}) as ReturnType<typeof neon>;
