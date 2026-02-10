@@ -41,8 +41,8 @@ export async function ensureUserRow(id: string, secret: string, displayName = "ã
 
 export async function getUserRow(id: string) {
   await ensureSchema();
-  const rows = await sql`
+  const rows = (await sql`
     SELECT id, display_name, friend_code, secret FROM users WHERE id = ${id} LIMIT 1;
-  `;
-  return rows[0] as { id: string; display_name: string; friend_code: string; secret: string } | undefined;
+  `) as { id: string; display_name: string; friend_code: string; secret: string }[];
+  return rows[0];
 }
