@@ -2,6 +2,7 @@ import ProfileSettings from "@/components/ProfileSettings";
 import CommunitySettings from "@/components/CommunitySettings";
 import CommunityFriendTabs from "@/components/CommunityFriendTabs";
 import TutorialTrigger from "@/components/TutorialTrigger";
+import GoogleCalendarSettings from "@/components/GoogleCalendarSettings";
 
 export default async function SettingsPage() {
   return (
@@ -12,6 +13,8 @@ export default async function SettingsPage() {
       </header>
 
       <ProfileSettings />
+
+      <GoogleCalendarSettings />
 
       <CommunitySettings />
 

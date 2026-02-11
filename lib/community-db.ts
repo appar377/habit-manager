@@ -60,10 +60,40 @@ export async function ensureSchema() {
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       habit_id TEXT NOT NULL REFERENCES user_habits(id) ON DELETE CASCADE,
       date TEXT NOT NULL,
-      start TEXT,
-      end TEXT,
+      start_time TEXT,
+      end_time TEXT,
       duration_min INT NOT NULL DEFAULT 0,
       volume INT NOT NULL DEFAULT 0
+    );
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_calendar_integrations (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      calendar_id TEXT,
+      access_token TEXT,
+      refresh_token TEXT,
+      token_expiry TIMESTAMPTZ,
+      sync_token TEXT,
+      channel_id TEXT,
+      resource_id TEXT,
+      channel_expiration BIGINT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_calendar_events (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      calendar_id TEXT NOT NULL,
+      event_id TEXT NOT NULL,
+      summary TEXT,
+      start_time TIMESTAMPTZ,
+      end_time TIMESTAMPTZ,
+      status TEXT,
+      location TEXT,
+      html_link TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (user_id, calendar_id, event_id)
     );
   `;
 }

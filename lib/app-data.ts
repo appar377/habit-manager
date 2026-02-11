@@ -1,6 +1,7 @@
 import { getOrCreateUser } from "@/lib/user";
 import { listHabits, listLogs } from "@/lib/db-store";
 import { buildStoreFromData } from "@/lib/store-factory";
+import { listCalendarEventsByDate } from "@/lib/calendar-db";
 
 export async function getStoreForUser() {
   try {
@@ -20,4 +21,13 @@ export async function getStoreForUserId(userId: string) {
   const logs = await listLogs(userId);
   const store = buildStoreFromData(habits, logs);
   return { store };
+}
+
+export async function getCalendarEventsForDate(date: string) {
+  try {
+    const user = await getOrCreateUser();
+    return await listCalendarEventsByDate(user.id, date);
+  } catch {
+    return [];
+  }
 }

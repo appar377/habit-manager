@@ -6,7 +6,8 @@ import StreakCalendar from "@/components/StreakCalendar";
 import CheatDayOnboarding from "@/components/CheatDayOnboarding";
 import CheatDayStatus from "@/components/CheatDayStatus";
 import NotificationScheduler from "@/components/NotificationScheduler";
-import { getStoreForUser } from "@/lib/app-data";
+import PlanExternalEvents from "@/components/PlanExternalEvents";
+import { getStoreForUser, getCalendarEventsForDate } from "@/lib/app-data";
 import { todayStr, parseDate, sortHabitsByRecentUsage, getWeekDates, getMonthCells } from "@/lib/utils";
 
 type PlanPageProps = { searchParams?: Promise<{ date?: string; view?: string }> | { date?: string; view?: string } };
@@ -29,6 +30,7 @@ export default async function PlanPage(props: PlanPageProps) {
   const params = await Promise.resolve(props.searchParams ?? {}).then((p) => (p ?? {}));
   const { store } = await getStoreForUser();
   const date = resolveDate(params);
+  const calendarEvents = await getCalendarEventsForDate(date);
   const view = resolveView(params);
   const today = todayStr();
 
@@ -79,6 +81,7 @@ export default async function PlanPage(props: PlanPageProps) {
                 <NotificationScheduler date={date} todosWithTime={todosWithTime} />
               </div>
             )}
+            <PlanExternalEvents events={calendarEvents} />
             <PlanTabs
               todosWithTime={todosWithTime}
               todosWithoutTime={todosWithoutTime}
