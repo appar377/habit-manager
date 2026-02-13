@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { ensureSchema, createUniqueFriendCode } from "@/lib/community-db";
-import { sql } from "@/lib/db";
+import { usersModel } from "@/lib/models/users";
+import { ensureUserStatsRow } from "@/lib/models/user-stats";
 
 const USER_ID_COOKIE = "hm_uid";
 const USER_SECRET_COOKIE = "hm_secret";
@@ -24,25 +25,20 @@ export async function getOrCreateUser(displayName = "ユーザー") {
 
 export async function ensureUserRow(id: string, secret: string, displayName = "ユーザー") {
   await ensureSchema();
-  const rows = (await sql`SELECT id FROM users WHERE id = ${id} LIMIT 1;`) as { id: string }[];
-  if (rows.length === 0) {
+  const existing = await usersModel.findById(id);
+  if (!existing) {
     const friendCode = await createUniqueFriendCode();
-    await sql`
-      INSERT INTO users (id, display_name, friend_code, secret)
-      VALUES (${id}, ${displayName}, ${friendCode}, ${secret});
-    `;
-    await sql`
-      INSERT INTO user_stats (user_id)
-      VALUES (${id})
-      ON CONFLICT (user_id) DO NOTHING;
-    `;
+    await usersModel.insert({
+      id,
+      display_name: displayName,
+      friend_code: friendCode,
+      secret,
+    });
+    await ensureUserStatsRow(id);
   }
 }
 
 export async function getUserRow(id: string) {
   await ensureSchema();
-  const rows = (await sql`
-    SELECT id, display_name, friend_code, secret FROM users WHERE id = ${id} LIMIT 1;
-  `) as { id: string; display_name: string; friend_code: string; secret: string }[];
-  return rows[0];
+  return usersModel.findById(id);
 }

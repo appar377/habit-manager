@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## 本番環境で 401 / 新規追加できない場合
+
+**症状**: `manifest.webmanifest` が 401 (Unauthorized)、または本番で習慣の新規追加ができない。
+
+**原因**: Vercel の **Deployment Protection**（パスワード保護・Vercel Authentication）が有効だと、認証前のリクエストが 401 になります。manifest の取得や、Cookie が付与される前の API がブロックされると、PWA のインストールや新規追加が失敗します。
+
+**対処**:
+
+1. [Vercel Dashboard](https://vercel.com) → 対象プロジェクト → **Settings** → **Deployment Protection**
+2. **Production** で「Password Protection」や「Vercel Authentication」がオンなら、本番を公開する場合は **Off** にするか、必要なら「Protection Bypass for Automation」でバイパス用シークレットを設定する。
+
+※ このリポジトリのミドルウェアは 401 を返していません。401 は Vercel の保護レイヤーで返されています。

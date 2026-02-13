@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS user_stats (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  log_streak INT NOT NULL DEFAULT 0,
+  plan_streak INT NOT NULL DEFAULT 0,
+  comeback_count INT NOT NULL DEFAULT 0,
+  achievement_rate REAL NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

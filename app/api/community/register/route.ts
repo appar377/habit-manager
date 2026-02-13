@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOrCreateUser, getUserRow } from "@/lib/user";
-import { sql } from "@/lib/db";
+import { updateUserDisplayName } from "@/lib/models/users";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "user_not_found" }, { status: 500 });
   }
   if (displayName && displayName !== row.display_name) {
-    await sql`UPDATE users SET display_name = ${displayName} WHERE id = ${row.id};`;
+    await updateUserDisplayName(row.id, displayName);
   }
   return NextResponse.json({
     userId: row.id,

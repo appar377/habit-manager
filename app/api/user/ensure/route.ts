@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureUserRow } from "@/lib/user";
 import { createUniqueFriendCode } from "@/lib/community-db";
-import { sql } from "@/lib/db";
+import { getFriendCodeById, updateFriendCode } from "@/lib/models/users";
 
 const USER_ID_COOKIE = "hm_uid";
 const USER_SECRET_COOKIE = "hm_secret";
@@ -22,10 +22,10 @@ export async function POST(req: Request) {
   await ensureUserRow(userId, userSecret);
 
   // ensure friend_code exists
-  const rows = (await sql`SELECT friend_code FROM users WHERE id = ${userId} LIMIT 1;`) as { friend_code: string | null }[];
-  if (!rows[0]?.friend_code) {
+  const friendCodeValue = await getFriendCodeById(userId);
+  if (!friendCodeValue) {
     const friendCode = await createUniqueFriendCode();
-    await sql`UPDATE users SET friend_code = ${friendCode} WHERE id = ${userId};`;
+    await updateFriendCode(userId, friendCode);
   }
 
   const res = NextResponse.json({ ok: true });

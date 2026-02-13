@@ -1,6 +1,8 @@
-import { sql } from "@/lib/db";
 import type { Habit, HabitType, ScheduleRule, Log } from "@/lib/store";
 import { ensureSchema } from "@/lib/community-db";
+import { listHabitsByUser, getHabitByUser, userHabitsModel } from "@/lib/models/user-habits";
+import { listSchedulesByHabitIds, getScheduleByHabit, upsertSchedule, updateScheduleByHabit } from "@/lib/models/user-schedules";
+import { listLogsByUser, insertLog, deleteLogByHabitAndDate } from "@/lib/models/user-logs";
 
 type HabitRow = {
   id: string;
@@ -40,29 +42,53 @@ function rowToHabit(row: HabitRow): Habit {
 
 export async function listHabits(userId: string, includeArchived = false): Promise<Habit[]> {
   await ensureSchema();
-  const rows = await sql`
-    SELECT h.id, h.name, h.type, h.target_sets, h.target_reps, h.target_min, h.archived, h.priority,
-           s.enabled as schedule_enabled, s.rule, s.interval_days, s.weekdays, s.start_time, s.end_time
-    FROM user_habits h
-    LEFT JOIN user_schedules s ON s.habit_id = h.id
-    WHERE h.user_id = ${userId} ${includeArchived ? sql`` : sql`AND h.archived = FALSE`}
-    ORDER BY COALESCE(h.priority, 99) ASC, h.created_at ASC;
-  `;
-  return (rows as HabitRow[]).map(rowToHabit);
+  const habitRows = await listHabitsByUser(userId, includeArchived);
+  const schedules = await listSchedulesByHabitIds(habitRows.map((h) => h.id));
+  const scheduleByHabit = new Map(schedules.map((s) => [s.habit_id, s]));
+  const rows: HabitRow[] = habitRows.map((h) => {
+    const s = scheduleByHabit.get(h.id);
+    return {
+      id: h.id,
+      name: h.name,
+      type: h.type as HabitType,
+      target_sets: h.target_sets,
+      target_reps: h.target_reps,
+      target_min: h.target_min,
+      archived: h.archived,
+      priority: h.priority,
+      schedule_enabled: s?.enabled ?? false,
+      rule: (s?.rule ?? null) as ScheduleRule | null,
+      interval_days: s?.interval_days ?? null,
+      weekdays: s?.weekdays ?? null,
+      start_time: s?.start_time ?? null,
+      end_time: s?.end_time ?? null,
+    };
+  });
+  return rows.map(rowToHabit);
 }
 
 export async function getHabit(userId: string, habitId: string): Promise<Habit | undefined> {
   await ensureSchema();
-  const rows = await sql`
-    SELECT h.id, h.name, h.type, h.target_sets, h.target_reps, h.target_min, h.archived, h.priority,
-           s.enabled as schedule_enabled, s.rule, s.interval_days, s.weekdays, s.start_time, s.end_time
-    FROM user_habits h
-    LEFT JOIN user_schedules s ON s.habit_id = h.id
-    WHERE h.user_id = ${userId} AND h.id = ${habitId}
-    LIMIT 1;
-  `;
-  const typed = rows as HabitRow[];
-  return typed[0] ? rowToHabit(typed[0]) : undefined;
+  const habit = await getHabitByUser(userId, habitId);
+  if (!habit) return undefined;
+  const schedule = await getScheduleByHabit(habitId);
+  const row: HabitRow = {
+    id: habit.id,
+    name: habit.name,
+    type: habit.type as HabitType,
+    target_sets: habit.target_sets,
+    target_reps: habit.target_reps,
+    target_min: habit.target_min,
+    archived: habit.archived,
+    priority: habit.priority,
+    schedule_enabled: schedule?.enabled ?? false,
+    rule: (schedule?.rule ?? null) as ScheduleRule | null,
+    interval_days: schedule?.interval_days ?? null,
+    weekdays: schedule?.weekdays ?? null,
+    start_time: schedule?.start_time ?? null,
+    end_time: schedule?.end_time ?? null,
+  };
+  return rowToHabit(row);
 }
 
 export async function addHabit(userId: string, input: {
@@ -81,34 +107,27 @@ export async function addHabit(userId: string, input: {
 }): Promise<Habit> {
   await ensureSchema();
   const habitId = crypto.randomUUID();
-  await sql`
-    INSERT INTO user_habits (id, user_id, name, type, target_sets, target_reps, target_min, archived, priority)
-    VALUES (
-      ${habitId},
-      ${userId},
-      ${input.name.trim()},
-      ${input.type},
-      ${input.targetSets ?? null},
-      ${input.targetReps ?? null},
-      ${input.targetMin ?? null},
-      FALSE,
-      ${input.priority ?? null}
-    );
-  `;
-  await sql`
-    INSERT INTO user_schedules (id, habit_id, rule, interval_days, weekdays, start_time, end_time, enabled)
-    VALUES (
-      ${crypto.randomUUID()},
-      ${habitId},
-      ${input.scheduleRule ?? "daily"},
-      ${input.scheduleIntervalDays ?? null},
-      ${input.scheduleWeekdays ?? null},
-      ${input.scheduleStart ?? null},
-      ${input.scheduleEnd ?? null},
-      ${input.scheduleEnabled ?? false}
-    )
-    ON CONFLICT DO NOTHING;
-  `;
+  await userHabitsModel.insert({
+    id: habitId,
+    user_id: userId,
+    name: input.name.trim(),
+    type: input.type,
+    target_sets: input.targetSets ?? null,
+    target_reps: input.targetReps ?? null,
+    target_min: input.targetMin ?? null,
+    archived: false,
+    priority: input.priority ?? null,
+  });
+  await upsertSchedule({
+    id: crypto.randomUUID(),
+    habit_id: habitId,
+    rule: input.scheduleRule ?? "daily",
+    interval_days: input.scheduleIntervalDays ?? null,
+    weekdays: input.scheduleWeekdays ?? null,
+    start_time: input.scheduleStart ?? null,
+    end_time: input.scheduleEnd ?? null,
+    enabled: input.scheduleEnabled ?? false,
+  });
   const habit = await getHabit(userId, habitId);
   if (!habit) throw new Error("habit_insert_failed");
   return habit;
@@ -137,30 +156,24 @@ export async function updateHabit(
   const current = await getHabit(userId, habitId);
   if (!current) return undefined;
 
-  await sql`
-    UPDATE user_habits
-    SET
-      name = ${partial.name ?? current.name},
-      type = ${partial.type ?? current.type},
-      target_sets = ${partial.targetSets ?? current.targetSets ?? null},
-      target_reps = ${partial.targetReps ?? current.targetReps ?? null},
-      target_min = ${partial.targetMin ?? current.targetMin ?? null},
-      archived = ${partial.archived ?? current.archived ?? false},
-      priority = ${partial.priority ?? current.priority ?? null}
-    WHERE id = ${habitId} AND user_id = ${userId};
-  `;
+  await userHabitsModel.updateById(habitId, {
+    name: partial.name ?? current.name,
+    type: partial.type ?? current.type,
+    target_sets: partial.targetSets ?? current.targetSets ?? null,
+    target_reps: partial.targetReps ?? current.targetReps ?? null,
+    target_min: partial.targetMin ?? current.targetMin ?? null,
+    archived: partial.archived ?? current.archived ?? false,
+    priority: partial.priority ?? current.priority ?? null,
+  });
 
-  await sql`
-    UPDATE user_schedules
-    SET
-      enabled = ${partial.scheduleEnabled ?? current.scheduleEnabled ?? false},
-      rule = ${partial.scheduleRule ?? current.scheduleRule ?? "daily"},
-      interval_days = ${partial.scheduleIntervalDays ?? current.scheduleIntervalDays ?? null},
-      weekdays = ${partial.scheduleWeekdays ?? current.scheduleWeekdays ?? null},
-      start_time = ${partial.scheduleStart ?? current.scheduleStart ?? null},
-      end_time = ${partial.scheduleEnd ?? current.scheduleEnd ?? null}
-    WHERE habit_id = ${habitId};
-  `;
+  await updateScheduleByHabit(habitId, {
+    enabled: partial.scheduleEnabled ?? current.scheduleEnabled ?? false,
+    rule: partial.scheduleRule ?? current.scheduleRule ?? "daily",
+    interval_days: partial.scheduleIntervalDays ?? current.scheduleIntervalDays ?? null,
+    weekdays: partial.scheduleWeekdays ?? current.scheduleWeekdays ?? null,
+    start_time: partial.scheduleStart ?? current.scheduleStart ?? null,
+    end_time: partial.scheduleEnd ?? current.scheduleEnd ?? null,
+  });
 
   return getHabit(userId, habitId);
 }
@@ -171,13 +184,18 @@ export async function archiveHabit(userId: string, habitId: string): Promise<Hab
 
 export async function listLogs(userId: string, date?: string): Promise<Log[]> {
   await ensureSchema();
-  const rows = await sql`
-    SELECT id, date, habit_id as "habitId", sets, reps, start, end, duration_min as "durationMin", volume
-    FROM user_logs
-    WHERE user_id = ${userId} ${date ? sql`AND date = ${date}` : sql``}
-    ORDER BY date ASC;
-  `;
-  return rows as Log[];
+  const rows = await listLogsByUser(userId, date);
+  return rows.map((row) => ({
+    id: row.id,
+    date: row.date,
+    habitId: row.habit_id,
+    sets: row.sets ?? undefined,
+    reps: row.reps ?? undefined,
+    start: row.start_time ?? undefined,
+    end: row.end_time ?? undefined,
+    durationMin: row.duration_min,
+    volume: row.volume,
+  }));
 }
 
 export async function addLog(userId: string, input: {
@@ -192,21 +210,18 @@ export async function addLog(userId: string, input: {
   const durationMin = input.start && input.end ? diffMinutes(input.start, input.end) : 0;
   const volume = (input.sets ?? 0) * (input.reps ?? 0);
   const id = crypto.randomUUID();
-  await sql`
-    INSERT INTO user_logs (id, user_id, habit_id, date, sets, reps, start, end, duration_min, volume)
-    VALUES (
-      ${id},
-      ${userId},
-      ${input.habitId},
-      ${input.date},
-      ${input.sets ?? null},
-      ${input.reps ?? null},
-      ${input.start ?? null},
-      ${input.end ?? null},
-      ${durationMin},
-      ${volume}
-    );
-  `;
+  await insertLog({
+    id,
+    user_id: userId,
+    habit_id: input.habitId,
+    date: input.date,
+    sets: input.sets ?? null,
+    reps: input.reps ?? null,
+    start_time: input.start ?? null,
+    end_time: input.end ?? null,
+    duration_min: durationMin,
+    volume,
+  });
   return {
     id,
     date: input.date,
@@ -222,11 +237,7 @@ export async function addLog(userId: string, input: {
 
 export async function deleteLogByHabitAndDate(userId: string, habitId: string, date: string): Promise<number> {
   await ensureSchema();
-  const res = await sql`
-    DELETE FROM user_logs WHERE user_id = ${userId} AND habit_id = ${habitId} AND date = ${date};
-  `;
-  // @neondatabase/serverless returns rowCount on res
-  return (res as unknown as { rowCount?: number }).rowCount ?? 0;
+  return deleteLogByHabitAndDate(userId, habitId, date);
 }
 
 function diffMinutes(start: string, end: string): number {

@@ -17,3 +17,18 @@ export const sql: ReturnType<typeof neon> = ((strings, ...values) => {
   // @neondatabase/serverless sql tag function
   return (c as any)(strings as any, ...values);
 }) as ReturnType<typeof neon>;
+
+sql.query = (text: string, params?: any[]) => {
+  const c = getClient();
+  return c.query(text, params as any);
+};
+
+sql.unsafe = (raw: string) => {
+  const c = getClient();
+  return c.unsafe(raw);
+};
+
+sql.transaction = (fn: any) => {
+  const c = getClient();
+  return c.transaction(fn);
+};

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { ensureSchema } from "@/lib/community-db";
-import { sql } from "@/lib/db";
 import { getStoreForUserId } from "@/lib/app-data";
+import { validateUser } from "@/lib/repositories/community-repo";
+import { upsertUserStats } from "@/lib/models/user-stats";
+import { updateUserDisplayName } from "@/lib/models/users";
 
 const ACHIEVEMENT_DAYS = 7;
 
@@ -29,32 +31,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing_auth" }, { status: 400 });
   }
 
-  const userRows = (await sql`
-    SELECT id FROM users WHERE id = ${userId} AND secret = ${secret} LIMIT 1;
-  `) as { id: string }[];
-  if (userRows.length === 0) {
+  const valid = await validateUser(userId, secret);
+  if (!valid) {
     return NextResponse.json({ error: "invalid_auth" }, { status: 403 });
   }
 
   const { store } = await getStoreForUserId(userId);
   const stats = computeStats(store);
 
-  await sql`
-    INSERT INTO user_stats (user_id, log_streak, plan_streak, comeback_count, achievement_rate, updated_at)
-    VALUES (${userId}, ${stats.logStreak}, ${stats.planStreak}, ${stats.comebackCount}, ${stats.achievementRate}, NOW())
-    ON CONFLICT (user_id)
-    DO UPDATE SET
-      log_streak = EXCLUDED.log_streak,
-      plan_streak = EXCLUDED.plan_streak,
-      comeback_count = EXCLUDED.comeback_count,
-      achievement_rate = EXCLUDED.achievement_rate,
-      updated_at = NOW();
-  `;
+  await upsertUserStats({
+    userId,
+    logStreak: stats.logStreak,
+    planStreak: stats.planStreak,
+    comebackCount: stats.comebackCount,
+    achievementRate: stats.achievementRate,
+  });
 
   if (displayName) {
-    await sql`
-      UPDATE users SET display_name = ${displayName} WHERE id = ${userId};
-    `;
+    await updateUserDisplayName(userId, displayName);
   }
 
   return NextResponse.json({ ok: true, stats });

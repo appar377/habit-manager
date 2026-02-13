@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getIntegration, upsertIntegration, upsertCalendarEvent, deleteCalendarEvent } from "@/lib/calendar-db";
 import { getValidAccessToken } from "@/lib/google-calendar";
 import { ensureSchema } from "@/lib/community-db";
-import { sql } from "@/lib/db";
+import { getIntegrationByChannelId } from "@/lib/models/user-calendar-integrations";
 
 function normalizeEventDate(e: any) {
   if (e.dateTime) return new Date(e.dateTime).toISOString();
@@ -22,13 +22,11 @@ export async function POST(req: Request) {
   }
 
   // find integration by channel id
-  const rows = (await sql`
-    SELECT user_id FROM user_calendar_integrations WHERE channel_id = ${channelId} LIMIT 1;
-  `) as { user_id: string }[];
-  if (!rows[0]) {
+  const channel = await getIntegrationByChannelId(channelId);
+  if (!channel) {
     return NextResponse.json({ ok: true });
   }
-  const userId = rows[0].user_id;
+  const userId = channel.user_id;
   const integration = await getIntegration(userId);
   if (!integration || !integration.calendarId) {
     return NextResponse.json({ ok: true });
