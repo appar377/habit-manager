@@ -1,8 +1,24 @@
 import type { Habit, HabitType, ScheduleRule, Log } from "@/lib/store";
 import { ensureSchema } from "@/lib/community-db";
-import { listHabitsByUser, getHabitByUser, userHabitsModel } from "@/lib/models/user-habits";
-import { listSchedulesByHabitIds, getScheduleByHabit, upsertSchedule, updateScheduleByHabit } from "@/lib/models/user-schedules";
-import { listLogsByUser, insertLog, deleteLogByHabitAndDate } from "@/lib/models/user-logs";
+import {
+  type UserHabitRow,
+  listHabitsByUser,
+  getHabitByUser,
+  userHabitsModel,
+} from "@/lib/models/user-habits";
+import {
+  type UserScheduleRow,
+  listSchedulesByHabitIds,
+  getScheduleByHabit,
+  upsertSchedule,
+  updateScheduleByHabit,
+} from "@/lib/models/user-schedules";
+import {
+  type UserLogRow,
+  listLogsByUser,
+  insertLog,
+  deleteLogByHabitAndDate as deleteLogByHabitAndDateModel,
+} from "@/lib/models/user-logs";
 
 type HabitRow = {
   id: string;
@@ -43,9 +59,11 @@ function rowToHabit(row: HabitRow): Habit {
 export async function listHabits(userId: string, includeArchived = false): Promise<Habit[]> {
   await ensureSchema();
   const habitRows = await listHabitsByUser(userId, includeArchived);
-  const schedules = await listSchedulesByHabitIds(habitRows.map((h) => h.id));
-  const scheduleByHabit = new Map(schedules.map((s) => [s.habit_id, s]));
-  const rows: HabitRow[] = habitRows.map((h) => {
+  const schedules = await listSchedulesByHabitIds(habitRows.map((h: UserHabitRow) => h.id));
+  const scheduleByHabit = new Map<string, UserScheduleRow>(
+    schedules.map((s: UserScheduleRow) => [s.habit_id, s])
+  );
+  const rows: HabitRow[] = habitRows.map((h: UserHabitRow) => {
     const s = scheduleByHabit.get(h.id);
     return {
       id: h.id,
@@ -185,7 +203,7 @@ export async function archiveHabit(userId: string, habitId: string): Promise<Hab
 export async function listLogs(userId: string, date?: string): Promise<Log[]> {
   await ensureSchema();
   const rows = await listLogsByUser(userId, date);
-  return rows.map((row) => ({
+  return rows.map((row: UserLogRow) => ({
     id: row.id,
     date: row.date,
     habitId: row.habit_id,
@@ -237,7 +255,7 @@ export async function addLog(userId: string, input: {
 
 export async function deleteLogByHabitAndDate(userId: string, habitId: string, date: string): Promise<number> {
   await ensureSchema();
-  return deleteLogByHabitAndDate(userId, habitId, date);
+  return deleteLogByHabitAndDateModel(userId, habitId, date);
 }
 
 function diffMinutes(start: string, end: string): number {

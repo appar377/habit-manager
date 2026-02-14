@@ -1,11 +1,16 @@
 import { sql } from "@/lib/db";
 
-type QueryResult<T> = { rows?: T[] } | T[];
+export type QueryResult<T> = { rows?: T[] } | T[];
 
 function rowsOf<T>(res: QueryResult<T>): T[] {
   if (Array.isArray(res)) return res;
-  if (res && Array.isArray(res.rows)) return res.rows;
+  if (res && typeof res === "object" && Array.isArray(res.rows)) return res.rows;
   return [];
+}
+
+/** sql.query の戻り値は実行時に rows または配列になるが型定義が合わないためキャスト用 */
+function asQueryResult<T>(res: unknown): QueryResult<T> {
+  return res as QueryResult<T>;
 }
 
 export type ListOptions<Row> = {
@@ -46,7 +51,7 @@ export class BaseModel<Row extends Record<string, any>> {
   async findById(id: string): Promise<Row | null> {
     const query = `SELECT ${this.columnList()} FROM ${this.table} WHERE ${this.primaryKey} = $1 LIMIT 1;`;
     const res = await sql.query(query, [id]);
-    const rows = rowsOf<Row>(res);
+    const rows = rowsOf<Row>(asQueryResult<Row>(res));
     return rows[0] ?? null;
   }
 
@@ -54,7 +59,7 @@ export class BaseModel<Row extends Record<string, any>> {
     const { clause, values } = this.buildWhere(where);
     const query = `SELECT ${this.columnList()} FROM ${this.table} ${clause} LIMIT 1;`;
     const res = await sql.query(query, values);
-    const rows = rowsOf<Row>(res);
+    const rows = rowsOf<Row>(asQueryResult<Row>(res));
     return rows[0] ?? null;
   }
 
@@ -68,7 +73,7 @@ export class BaseModel<Row extends Record<string, any>> {
     const offsetClause = options?.offset ? `OFFSET ${options.offset}` : "";
     const query = `SELECT ${this.columnList()} FROM ${this.table} ${clause} ${orderClause} ${limitClause} ${offsetClause};`;
     const res = await sql.query(query, values);
-    return rowsOf<Row>(res);
+    return rowsOf<Row>(asQueryResult<Row>(res));
   }
 
   async insert(data: Partial<Row>): Promise<Row> {
@@ -82,7 +87,7 @@ export class BaseModel<Row extends Record<string, any>> {
     const placeholders = keys.map((_, index) => `$${index + 1}`).join(", ");
     const query = `INSERT INTO ${this.table} (${cols}) VALUES (${placeholders}) RETURNING ${this.columnList()};`;
     const res = await sql.query(query, values);
-    const rows = rowsOf<Row>(res);
+    const rows = rowsOf<Row>(asQueryResult<Row>(res));
     if (!rows[0]) throw new Error(`insert_failed:${this.table}`);
     return rows[0];
   }
@@ -96,7 +101,7 @@ export class BaseModel<Row extends Record<string, any>> {
     values.push(id);
     const query = `UPDATE ${this.table} SET ${setClause} WHERE ${this.primaryKey} = $${keys.length + 1} RETURNING ${this.columnList()};`;
     const res = await sql.query(query, values);
-    const rows = rowsOf<Row>(res);
+    const rows = rowsOf<Row>(asQueryResult<Row>(res));
     return rows[0] ?? null;
   }
 

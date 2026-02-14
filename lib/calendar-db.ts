@@ -4,6 +4,7 @@ import {
   upsertIntegrationRow,
 } from "@/lib/models/user-calendar-integrations";
 import {
+  type CalendarEventRow,
   upsertCalendarEventRow,
   deleteCalendarEventRow,
   listCalendarEventsByDateRow,
@@ -53,7 +54,8 @@ export async function upsertIntegration(userId: string, patch: Partial<CalendarI
   });
 }
 
-export type CalendarEventRow = {
+/** camelCase の入力用。DB の CalendarEventRow (snake_case) とは別 */
+export type CalendarEventInput = {
   id: string;
   userId: string;
   calendarId: string;
@@ -66,7 +68,7 @@ export type CalendarEventRow = {
   htmlLink: string | null;
 };
 
-export async function upsertCalendarEvent(event: CalendarEventRow) {
+export async function upsertCalendarEvent(event: CalendarEventInput) {
   await ensureSchema();
   await upsertCalendarEventRow({
     id: event.id,
@@ -91,7 +93,7 @@ export async function deleteCalendarEvent(userId: string, calendarId: string, ev
 export async function listCalendarEventsByDate(userId: string, date: string) {
   await ensureSchema();
   const rows = await listCalendarEventsByDateRow(userId, date);
-  return rows.map((r) => ({
+  return rows.map((r: CalendarEventRow) => ({
     id: r.id,
     userId: r.user_id,
     calendarId: r.calendar_id,

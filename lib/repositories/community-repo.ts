@@ -51,7 +51,7 @@ export async function listFriendsWithStats(userId: string): Promise<FriendSummar
   await ensureSchema();
   const friendIds = await listFriendIds(userId);
   if (friendIds.length === 0) return [];
-  const placeholders = friendIds.map((_, index) => `$${index + 1}`).join(", ");
+  const placeholders = friendIds.map((_: string, index: number) => `$${index + 1}`).join(", ");
   const res = await sql.query(
     `SELECT id, display_name
      FROM users
