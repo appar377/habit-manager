@@ -18,6 +18,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // 静的アセット・manifest はミドルウェア対象外（Vercel Deployment Protection 時も 401 の原因になり得る）
+  // 静的アセット・manifest は対象外（401 は Vercel Deployment Protection 由来の可能性大）
   matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icon).*)"],
 };
