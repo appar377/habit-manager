@@ -65,7 +65,7 @@ export default function HabitCard({ habit, trend, onUpdate, onDeleted }: Props) 
     }
     startTransition(async () => {
       const result = await deleteHabitAction(habit.id);
-      if (result.ok) {
+      if ("ok" in result && result.ok) {
         setConfirmDelete(false);
         onDeleted?.(habit.id);
       }
