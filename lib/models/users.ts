@@ -6,6 +6,8 @@ export type UserRow = {
   display_name: string;
   friend_code: string;
   secret: string;
+  email: string | null;
+  password_hash: string | null;
   created_at: string;
 };
 
@@ -14,13 +16,24 @@ export const usersModel = new BaseModel<UserRow>("users", [
   "display_name",
   "friend_code",
   "secret",
+  "email",
+  "password_hash",
   "created_at",
 ]);
 
 export async function findUserByIdAndSecret(id: string, secret: string) {
   const res = await sql.query(
-    "SELECT id, display_name, friend_code, secret, created_at FROM users WHERE id = $1 AND secret = $2 LIMIT 1;",
+    "SELECT id, display_name, friend_code, secret, email, password_hash, created_at FROM users WHERE id = $1 AND secret = $2 LIMIT 1;",
     [id, secret]
+  );
+  const rows = Array.isArray(res) ? res : (res as any).rows;
+  return rows?.[0] ?? null;
+}
+
+export async function findUserByEmail(email: string): Promise<UserRow | null> {
+  const res = await sql.query(
+    "SELECT id, display_name, friend_code, secret, email, password_hash, created_at FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1)) LIMIT 1;",
+    [email]
   );
   const rows = Array.isArray(res) ? res : (res as any).rows;
   return rows?.[0] ?? null;

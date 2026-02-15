@@ -3,6 +3,7 @@ import CommunitySettings from "@/components/CommunitySettings";
 import CommunityFriendTabs from "@/components/CommunityFriendTabs";
 import TutorialTrigger from "@/components/TutorialTrigger";
 import GoogleCalendarSettings from "@/components/GoogleCalendarSettings";
+import LogoutButton from "@/components/LogoutButton";
 
 export default async function SettingsPage() {
   return (
@@ -11,6 +12,8 @@ export default async function SettingsPage() {
         <h1 className="text-lg font-bold text-foreground">設定</h1>
         <p className="text-sm text-fg-muted mt-0.5">プロフィール・フレンド・チュートリアル</p>
       </header>
+
+      <LogoutButton />
 
       <ProfileSettings />
 

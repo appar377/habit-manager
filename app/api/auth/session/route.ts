@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/user";
 
-/**
- * セッション確認のみ。ログイン済みなら 200、未ログインなら 401。
- * 匿名ユーザーは作成しない（ログイン・サインアップ必須）。
- */
-export async function POST() {
+/** ログイン状態を確認。200 = ログイン済み、401 = 未ログイン */
+export async function GET() {
   try {
     await getOrCreateUser();
     return NextResponse.json({ ok: true });

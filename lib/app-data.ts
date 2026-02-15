@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getOrCreateUser } from "@/lib/user";
 import { listHabits, listLogs } from "@/lib/db-store";
 import { buildStoreFromData } from "@/lib/store-factory";
@@ -10,9 +11,11 @@ export async function getStoreForUser() {
     const logs = await listLogs(user.id);
     const store = buildStoreFromData(habits, logs);
     return { user, store };
-  } catch {
-    const store = buildStoreFromData([], []);
-    return { user: { id: "bootstrap", secret: "bootstrap" }, store };
+  } catch (e) {
+    if (e instanceof Error && e.message === "user_cookie_missing") {
+      redirect("/login");
+    }
+    throw e;
   }
 }
 
