@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { store } from "@/lib/store";
 import type { CheatDayConfig, Habit, Rival } from "@/lib/store";
 import { getOrCreateUser } from "@/lib/user";
-import { addHabit, updateHabit, archiveHabit, addLog, deleteLogByHabitAndDate, getHabit, listLogs } from "@/lib/db-store";
+import { addHabit, updateHabit, archiveHabit, deleteHabit, addLog, deleteLogByHabitAndDate, getHabit, listLogs } from "@/lib/db-store";
 import { getFeedbackResult } from "@/lib/feedback";
 
 function todayStr() {
@@ -146,6 +146,24 @@ export async function archiveHabitAction(id: string) {
   revalidatePath("/habits");
   revalidatePath("/capture");
   return { habit };
+}
+
+export type DeleteHabitResult = { ok: true } | { error: string };
+
+export async function deleteHabitAction(id: string): Promise<DeleteHabitResult> {
+  try {
+    const user = await getOrCreateUser();
+    const deleted = await deleteHabit(user.id, id);
+    if (!deleted) return { error: "habit_not_found" };
+    revalidatePath("/habits");
+    revalidatePath("/capture");
+    revalidatePath("/plan");
+    revalidatePath("/review");
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "unknown";
+    return { error: message === "user_cookie_missing" ? "user_cookie_missing" : "server_error" };
+  }
 }
 
 /** 時間指定なしの表示順を更新。habitIds の並びがそのまま優先度 1,2,3... になる。 */

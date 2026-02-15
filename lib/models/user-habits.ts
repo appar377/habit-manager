@@ -50,3 +50,13 @@ export async function getHabitByUser(userId: string, habitId: string) {
   const rows = Array.isArray(res) ? res : (res as any).rows;
   return rows?.[0] ?? null;
 }
+
+/** 習慣を削除（user_schedules / user_logs は FK CASCADE で自動削除） */
+export async function deleteHabitByUser(userId: string, habitId: string): Promise<boolean> {
+  const res = await sql.query(
+    "DELETE FROM user_habits WHERE id = $1 AND user_id = $2;",
+    [habitId, userId]
+  );
+  const rowCount = (res as { rowCount?: number }).rowCount;
+  return typeof rowCount === "number" && rowCount > 0;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Habit } from "@/lib/store";
 import HabitForm from "./HabitForm";
@@ -10,12 +10,20 @@ import Input from "./ui/Input";
 
 type Trend = "up" | "down" | "same";
 
+type HabitWithTrend = { habit: Habit; trend: Trend };
+
 type Props = {
-  habitsWithTrend: { habit: Habit; trend: Trend }[];
+  habitsWithTrend: HabitWithTrend[];
 };
 
 export default function HabitsList({ habitsWithTrend }: Props) {
   const router = useRouter();
+  const [list, setList] = useState<HabitWithTrend[]>(habitsWithTrend);
+
+  useEffect(() => {
+    setList(habitsWithTrend);
+  }, [habitsWithTrend]);
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "exercise" | "study">("all");
@@ -25,7 +33,19 @@ export default function HabitsList({ habitsWithTrend }: Props) {
     router.refresh();
   }
 
-  const habits = habitsWithTrend.filter((h) => !h.habit.archived);
+  function handleDeleted(habitId: string) {
+    setList((prev) => prev.filter((h) => h.habit.id !== habitId));
+  }
+
+  function handleHabitAdded(createdHabit?: Habit) {
+    if (createdHabit) {
+      setList((prev) => [...prev, { habit: createdHabit, trend: "same" as const }]);
+    }
+    setShowCreateForm(false);
+    refresh();
+  }
+
+  const habits = list.filter((h) => !h.habit.archived);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return habits.filter(({ habit }) => {
@@ -95,10 +115,7 @@ export default function HabitsList({ habitsWithTrend }: Props) {
           <h2 className="text-sm font-semibold text-foreground mb-3">新しい習慣を追加</h2>
           <HabitForm
             initial={undefined}
-            onSuccess={() => {
-              setShowCreateForm(false);
-              refresh();
-            }}
+            onSuccess={handleHabitAdded}
             onCancel={() => setShowCreateForm(false)}
           />
         </section>
@@ -117,6 +134,7 @@ export default function HabitsList({ habitsWithTrend }: Props) {
                 habit={habit}
                 trend={trend}
                 onUpdate={refresh}
+                onDeleted={handleDeleted}
               />
             ))}
           </ul>

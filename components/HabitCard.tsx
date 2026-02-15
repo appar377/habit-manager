@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { Habit } from "@/lib/store";
 import type { ScheduleRule } from "@/lib/store";
+import { deleteHabitAction } from "@/lib/actions";
 import HabitForm from "./HabitForm";
 import Button from "./ui/Button";
 
@@ -49,10 +50,27 @@ type Props = {
   habit: Habit;
   trend: Trend;
   onUpdate: () => void;
+  onDeleted?: (habitId: string) => void;
 };
 
-export default function HabitCard({ habit, trend, onUpdate }: Props) {
+export default function HabitCard({ habit, trend, onUpdate, onDeleted }: Props) {
+  const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  function handleDelete() {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    startTransition(async () => {
+      const result = await deleteHabitAction(habit.id);
+      if (result.ok) {
+        setConfirmDelete(false);
+        onDeleted?.(habit.id);
+      }
+    });
+  }
 
   return (
     <li className="rounded-[var(--radius-xl)] border-2 border-border bg-bg-muted p-4 shadow-[var(--shadow-card)]">
@@ -93,6 +111,34 @@ export default function HabitCard({ habit, trend, onUpdate }: Props) {
           >
             編集
           </Button>
+          {confirmDelete ? (
+            <span className="flex items-center gap-1 text-xs">
+              <Button
+                variant="danger"
+                className="min-h-[36px] px-2 text-xs"
+                onClick={handleDelete}
+                disabled={isPending}
+              >
+                {isPending ? "削除中…" : "削除する"}
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-[36px] px-2 text-xs"
+                onClick={() => setConfirmDelete(false)}
+                disabled={isPending}
+              >
+                キャンセル
+              </Button>
+            </span>
+          ) : (
+            <Button
+              variant="ghost"
+              className="min-h-[36px] px-2 text-xs text-fg-muted hover:text-danger"
+              onClick={() => setConfirmDelete(true)}
+            >
+              削除
+            </Button>
+          )}
         </div>
       </div>
 

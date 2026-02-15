@@ -4,6 +4,7 @@ import {
   type UserHabitRow,
   listHabitsByUser,
   getHabitByUser,
+  deleteHabitByUser as deleteHabitByUserModel,
   userHabitsModel,
 } from "@/lib/models/user-habits";
 import {
@@ -198,6 +199,12 @@ export async function updateHabit(
 
 export async function archiveHabit(userId: string, habitId: string): Promise<Habit | undefined> {
   return updateHabit(userId, habitId, { archived: true });
+}
+
+/** 習慣を完全削除（スケジュール・ログは DB CASCADE で削除） */
+export async function deleteHabit(userId: string, habitId: string): Promise<boolean> {
+  await ensureSchema();
+  return deleteHabitByUserModel(userId, habitId);
 }
 
 export async function listLogs(userId: string, date?: string): Promise<Log[]> {

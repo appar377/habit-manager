@@ -16,7 +16,8 @@ const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 type Props = {
   /** 編集時は渡す。新規時は undefined */
   initial?: Habit;
-  onSuccess: () => void;
+  /** 成功時。新規追加の場合は作成された habit を渡す（一覧の即時反映用） */
+  onSuccess: (createdHabit?: Habit) => void;
   onCancel?: () => void;
 };
 
@@ -103,6 +104,8 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
           if (result.error === "user_cookie_missing") router.refresh();
           return;
         }
+        onSuccess(result.habit);
+        return;
       }
       onSuccess();
     });
