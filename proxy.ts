@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const USER_ID_COOKIE = "hm_uid";
 const USER_SECRET_COOKIE = "hm_secret";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const res = NextResponse.next();
   const hasId = req.cookies.get(USER_ID_COOKIE)?.value;
   const hasSecret = req.cookies.get(USER_SECRET_COOKIE)?.value;
