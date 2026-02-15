@@ -71,7 +71,7 @@ export function hasScheduleTime(habit: HabitWithSchedule): boolean {
 
 /**
  * 指定日の習慣TODOを返す（保存しない）。
- * timeSpecified: true = 時間指定ありのみ、false = 時間指定なしのみ、undefined = 全部。
+ * timeSpecified: true = 時間指定ありのみ、false = 時間指定なし＋スケジュールOFF も含む、undefined = 全部。
  */
 export function getTodayTodos(
   date: string,
@@ -82,10 +82,19 @@ export function getTodayTodos(
   const wantTime = options?.timeSpecified;
   const defaultPriority = 99;
   for (const h of habits) {
-    if (!h.scheduleEnabled || !isDateInSchedule(date, h)) continue;
+    const scheduleOn = !!h.scheduleEnabled;
+    const inSchedule = scheduleOn && isDateInSchedule(date, h);
     const withTime = hasScheduleTime(h);
-    if (wantTime === true && !withTime) continue;
-    if (wantTime === false && withTime) continue;
+
+    if (wantTime === true) {
+      if (!inSchedule || !withTime) continue;
+    } else if (wantTime === false) {
+      if (inSchedule && withTime) continue;
+      if (scheduleOn && !inSchedule) continue;
+    } else {
+      if (!inSchedule) continue;
+    }
+
     const start = withTime ? (h.scheduleStart!.trim()) : "00:00";
     const end = withTime ? (h.scheduleEnd!.trim()) : "00:15";
     const priority = h.priority ?? defaultPriority;
