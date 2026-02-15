@@ -45,6 +45,14 @@ async function recordMigration(id: string, checksum: string) {
   await sql.query("INSERT INTO schema_migrations (id, checksum) VALUES ($1, $2);", [id, checksum]);
 }
 
+/** 複数文のSQLを1文ずつに分割（PostgreSQLは prepared statement で1コマンドのみ受け付けるため） */
+function splitSqlStatements(content: string): string[] {
+  return content
+    .split(/;\s*[\r\n]+/)
+    .map((s) => s.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "").trim())
+    .filter((s) => s.length > 0);
+}
+
 async function applyFile(dir: string, file: string, prefix: string) {
   const content = await readFile(path.join(dir, file), "utf8");
   const id = `${prefix}:${file}`;
@@ -56,7 +64,11 @@ async function applyFile(dir: string, file: string, prefix: string) {
     }
     return;
   }
-  await sql.query(content);
+  const statements = splitSqlStatements(content);
+  for (const statement of statements) {
+    const withSemicolon = statement.endsWith(";") ? statement : statement + ";";
+    await sql.query(withSemicolon);
+  }
   await recordMigration(id, checksum);
 }
 
