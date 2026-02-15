@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "npm run db:migrate && next build",
+    "build": "(npm run db:migrate || true) && next build",
     "start": "next start",
     "db:migrate": "node scripts/migrate.js",
     "lint": "eslint"
