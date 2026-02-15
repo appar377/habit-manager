@@ -51,8 +51,8 @@ function rowToHabit(row: HabitRow): Habit {
     scheduleRule: row.rule ?? undefined,
     scheduleIntervalDays: row.interval_days ?? undefined,
     scheduleWeekdays: row.weekdays ?? undefined,
-    scheduleStart: row.start_time ?? undefined,
-    scheduleEnd: row.end_time ?? undefined,
+    scheduleStart: (row.start_time?.trim() || undefined) ?? undefined,
+    scheduleEnd: (row.end_time?.trim() || undefined) ?? undefined,
     priority: row.priority ?? undefined,
   };
 }
@@ -143,8 +143,8 @@ export async function addHabit(userId: string, input: {
     rule: input.scheduleRule ?? "daily",
     interval_days: input.scheduleIntervalDays ?? null,
     weekdays: input.scheduleWeekdays ?? null,
-    start_time: input.scheduleStart ?? null,
-    end_time: input.scheduleEnd ?? null,
+    start_time: input.scheduleStart?.trim() || null,
+    end_time: input.scheduleEnd?.trim() || null,
     enabled: input.scheduleEnabled ?? false,
   });
   const habit = await getHabit(userId, habitId);
@@ -185,13 +185,21 @@ export async function updateHabit(
     priority: partial.priority ?? current.priority ?? null,
   });
 
+  const startTime =
+    partial.scheduleStart !== undefined
+      ? (partial.scheduleStart?.trim() || null)
+      : (current.scheduleStart ?? null);
+  const endTime =
+    partial.scheduleEnd !== undefined
+      ? (partial.scheduleEnd?.trim() || null)
+      : (current.scheduleEnd ?? null);
   await updateScheduleByHabit(habitId, {
     enabled: partial.scheduleEnabled ?? current.scheduleEnabled ?? false,
     rule: partial.scheduleRule ?? current.scheduleRule ?? "daily",
     interval_days: partial.scheduleIntervalDays ?? current.scheduleIntervalDays ?? null,
     weekdays: partial.scheduleWeekdays ?? current.scheduleWeekdays ?? null,
-    start_time: partial.scheduleStart ?? current.scheduleStart ?? null,
-    end_time: partial.scheduleEnd ?? current.scheduleEnd ?? null,
+    start_time: startTime,
+    end_time: endTime,
   });
 
   return getHabit(userId, habitId);

@@ -34,11 +34,16 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
   const [scheduleRule, setScheduleRule] = useState<ScheduleRule>(
     initial?.scheduleRule ?? "daily"
   );
+  const hasInitialTime =
+    !!(initial?.scheduleStart?.trim() && initial?.scheduleEnd?.trim());
+  const [scheduleNoTime, setScheduleNoTime] = useState(
+    initial?.scheduleEnabled ? !hasInitialTime : true
+  );
   const [scheduleStart, setScheduleStart] = useState(
-    initial?.scheduleStart ? roundTimeTo15(initial.scheduleStart) : "09:00"
+    initial?.scheduleStart ? roundTimeTo15(initial.scheduleStart) : ""
   );
   const [scheduleEnd, setScheduleEnd] = useState(
-    initial?.scheduleEnd ? roundTimeTo15(initial.scheduleEnd) : "10:00"
+    initial?.scheduleEnd ? roundTimeTo15(initial.scheduleEnd) : ""
   );
   const [scheduleWeekdays, setScheduleWeekdays] = useState<number[]>(
     initial?.scheduleWeekdays ?? [1, 2, 3, 4, 5]
@@ -65,8 +70,14 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
     const schedulePayload = {
       scheduleEnabled,
       scheduleRule,
-      scheduleStart: scheduleEnabled ? scheduleStart : undefined,
-      scheduleEnd: scheduleEnabled ? scheduleEnd : undefined,
+      scheduleStart:
+        scheduleEnabled && !scheduleNoTime && scheduleStart.trim()
+          ? scheduleStart.trim()
+          : undefined,
+      scheduleEnd:
+        scheduleEnabled && !scheduleNoTime && scheduleEnd.trim()
+          ? scheduleEnd.trim()
+          : undefined,
       scheduleWeekdays: scheduleRule === "weekly" ? scheduleWeekdays : undefined,
       scheduleIntervalDays:
         scheduleRule === "interval_days" && scheduleIntervalDays
@@ -234,26 +245,53 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
                 />
               </div>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>開始（15分単位）</Label>
-                <Input
-                  type="time"
-                  step={900}
-                  value={scheduleStart}
-                  onChange={(e) => setScheduleStart(roundTimeTo15(e.target.value))}
-                />
-              </div>
-              <div>
-                <Label>終了（15分単位）</Label>
-                <Input
-                  type="time"
-                  step={900}
-                  value={scheduleEnd}
-                  onChange={(e) => setScheduleEnd(roundTimeTo15(e.target.value))}
-                />
-              </div>
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                id="schedule-no-time"
+                checked={scheduleNoTime}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setScheduleNoTime(checked);
+                  if (checked) {
+                    setScheduleStart("");
+                    setScheduleEnd("");
+                  }
+                }}
+                className="rounded border-border"
+              />
+              <Label htmlFor="schedule-no-time" className="!mb-0 cursor-pointer">
+                時間を指定しない（予定の「時間指定なし」タブに表示）
+              </Label>
             </div>
+            {!scheduleNoTime && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>開始（15分単位）</Label>
+                  <Input
+                    type="time"
+                    step={900}
+                    value={scheduleStart}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setScheduleStart(v === "" ? "" : roundTimeTo15(v));
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label>終了（15分単位）</Label>
+                  <Input
+                    type="time"
+                    step={900}
+                    value={scheduleEnd}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setScheduleEnd(v === "" ? "" : roundTimeTo15(v));
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <Label>表示優先度</Label>
               <Input

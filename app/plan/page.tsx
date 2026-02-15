@@ -10,6 +10,9 @@ import PlanExternalEvents from "@/components/PlanExternalEvents";
 import { getStoreForUser, getCalendarEventsForDate } from "@/lib/app-data";
 import { todayStr, parseDate, sortHabitsByRecentUsage, getWeekDates, getMonthCells } from "@/lib/utils";
 
+/** 予定は常に最新の習慣・ログを表示するためキャッシュしない */
+export const dynamic = "force-dynamic";
+
 type PlanPageProps = { searchParams?: Promise<{ date?: string; view?: string }> | { date?: string; view?: string } };
 
 function resolveDate(params: { date?: string }): string {
