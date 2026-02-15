@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { addHabitAction, updateHabitAction } from "@/lib/actions";
 import type { Habit, ScheduleRule } from "@/lib/store";
 import { roundTimeTo15 } from "@/lib/time";
@@ -20,7 +21,9 @@ type Props = {
 };
 
 export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [formError, setFormError] = useState<string | null>(null);
   const [name, setName] = useState(initial?.name ?? "");
   const [type, setType] = useState<"exercise" | "study">(initial?.type ?? "exercise");
   const [targetSets, setTargetSets] = useState(initial?.targetSets?.toString() ?? "");
@@ -70,9 +73,10 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
           : undefined,
       priority: priority !== "" ? Number(priority) : undefined,
     };
+    setFormError(null);
     startTransition(async () => {
       if (isEdit) {
-        await updateHabitAction(initial!.id, {
+        const result = await updateHabitAction(initial!.id, {
           name: trimmed,
           type,
           targetSets: targetSets ? Number(targetSets) : undefined,
@@ -80,8 +84,13 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
           targetMin: targetMin ? Number(targetMin) : undefined,
           ...schedulePayload,
         });
+        if ("error" in result) {
+          setFormError(result.error === "user_cookie_missing" ? "セッションがありません。ページを再読み込みしてください。" : "保存に失敗しました。");
+          if (result.error === "user_cookie_missing") router.refresh();
+          return;
+        }
       } else {
-        await addHabitAction({
+        const result = await addHabitAction({
           name: trimmed,
           type,
           targetSets: targetSets ? Number(targetSets) : undefined,
@@ -89,6 +98,11 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
           targetMin: targetMin ? Number(targetMin) : undefined,
           ...schedulePayload,
         });
+        if ("error" in result) {
+          setFormError(result.error === "user_cookie_missing" ? "セッションがありません。ページを再読み込みしてください。" : "保存に失敗しました。");
+          if (result.error === "user_cookie_missing") router.refresh();
+          return;
+        }
       }
       onSuccess();
     });
@@ -96,6 +110,11 @@ export default function HabitForm({ initial, onSuccess, onCancel }: Props) {
 
   return (
     <form onSubmit={submit} className="rounded-[var(--radius-xl)] border-2 border-border p-4 space-y-4 bg-bg-subtle">
+      {formError && (
+        <p className="text-sm text-danger bg-danger-soft/50 rounded-lg px-3 py-2" role="alert">
+          {formError}
+        </p>
+      )}
       <div>
         <Label>名前</Label>
         <Input

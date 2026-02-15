@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { store } from "@/lib/store";
-import type { CheatDayConfig, Rival } from "@/lib/store";
+import type { CheatDayConfig, Habit, Rival } from "@/lib/store";
 import { getOrCreateUser } from "@/lib/user";
 import { addHabit, updateHabit, archiveHabit, addLog, deleteLogByHabitAndDate, getHabit, listLogs } from "@/lib/db-store";
 import { getFeedbackResult } from "@/lib/feedback";
@@ -66,6 +66,8 @@ export async function addLogAction(form: {
   return { feedback };
 }
 
+export type AddHabitResult = { habit: Habit } | { error: string };
+
 export async function addHabitAction(form: {
   name: string;
   type: "exercise" | "study";
@@ -79,27 +81,34 @@ export async function addHabitAction(form: {
   scheduleStart?: string;
   scheduleEnd?: string;
   priority?: number;
-}) {
-  const user = await getOrCreateUser();
-  const habit = await addHabit(user.id, {
-    name: form.name.trim(),
-    type: form.type,
-    targetSets: form.targetSets,
-    targetReps: form.targetReps,
-    targetMin: form.targetMin,
-    scheduleEnabled: form.scheduleEnabled,
-    scheduleRule: form.scheduleRule,
-    scheduleIntervalDays: form.scheduleIntervalDays,
-    scheduleWeekdays: form.scheduleWeekdays,
-    scheduleStart: form.scheduleStart,
-    scheduleEnd: form.scheduleEnd,
-    priority: form.priority,
-  });
-  revalidatePath("/habits");
-  revalidatePath("/capture");
-  revalidatePath("/plan");
-  return { habit };
+}): Promise<AddHabitResult> {
+  try {
+    const user = await getOrCreateUser();
+    const habit = await addHabit(user.id, {
+      name: form.name.trim(),
+      type: form.type,
+      targetSets: form.targetSets,
+      targetReps: form.targetReps,
+      targetMin: form.targetMin,
+      scheduleEnabled: form.scheduleEnabled,
+      scheduleRule: form.scheduleRule,
+      scheduleIntervalDays: form.scheduleIntervalDays,
+      scheduleWeekdays: form.scheduleWeekdays,
+      scheduleStart: form.scheduleStart,
+      scheduleEnd: form.scheduleEnd,
+      priority: form.priority,
+    });
+    revalidatePath("/habits");
+    revalidatePath("/capture");
+    revalidatePath("/plan");
+    return { habit };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "unknown";
+    return { error: message === "user_cookie_missing" ? "user_cookie_missing" : "server_error" };
+  }
 }
+
+export type UpdateHabitResult = { habit: Habit | undefined } | { error: string };
 
 export async function updateHabitAction(
   id: string,
@@ -117,13 +126,18 @@ export async function updateHabitAction(
     scheduleEnd?: string;
     priority?: number;
   }
-) {
-  const user = await getOrCreateUser();
-  const habit = await updateHabit(user.id, id, partial);
-  revalidatePath("/habits");
-  revalidatePath("/capture");
-  revalidatePath("/plan");
-  return { habit };
+): Promise<UpdateHabitResult> {
+  try {
+    const user = await getOrCreateUser();
+    const habit = await updateHabit(user.id, id, partial);
+    revalidatePath("/habits");
+    revalidatePath("/capture");
+    revalidatePath("/plan");
+    return { habit };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "unknown";
+    return { error: message === "user_cookie_missing" ? "user_cookie_missing" : "server_error" };
+  }
 }
 
 export async function archiveHabitAction(id: string) {
