@@ -45,12 +45,38 @@ async function recordMigration(id: string, checksum: string) {
   await sql.query("INSERT INTO schema_migrations (id, checksum) VALUES ($1, $2);", [id, checksum]);
 }
 
-/** 複数文のSQLを1文ずつに分割（PostgreSQLは prepared statement で1コマンドのみ受け付けるため） */
+/** 複数文のSQLを1文ずつに分割（PostgreSQLは prepared statement で1コマンドのみ受け付けるため）。$$...$$ 内の ; では分割しない。 */
 function splitSqlStatements(content: string): string[] {
-  return content
-    .split(/;\s*[\r\n]+/)
-    .map((s) => s.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "").trim())
-    .filter((s) => s.length > 0);
+  const stripped = content
+    .replace(/--[^\n]*/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+  const statements: string[] = [];
+  let start = 0;
+  let inDollarQuote = false;
+  for (let i = 0; i < stripped.length; i++) {
+    if (inDollarQuote) {
+      if (stripped.slice(i, i + 2) === "$$") {
+        inDollarQuote = false;
+        i += 1;
+      }
+      continue;
+    }
+    if (stripped.slice(i, i + 2) === "$$") {
+      inDollarQuote = true;
+      i += 1;
+      continue;
+    }
+    const match = stripped.slice(i).match(/^\s*;\s*[\r\n]+/);
+    if (match) {
+      const stmt = stripped.slice(start, i).trim();
+      if (stmt.length > 0) statements.push(stmt);
+      start = i + match[0].length;
+      i += match[0].length - 1;
+    }
+  }
+  const tail = stripped.slice(start).trim();
+  if (tail.length > 0) statements.push(tail);
+  return statements;
 }
 
 async function applyFile(dir: string, file: string, prefix: string) {
