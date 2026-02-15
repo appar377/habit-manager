@@ -11,6 +11,40 @@ function checksumOf(content) {
   return crypto.createHash("sha256").update(content).digest("hex");
 }
 
+/** Split SQL into single statements (Neon prepared statement allows one command). Skip splitting inside $$...$$ */
+function splitSqlStatements(content) {
+  const stripped = content
+    .replace(/--[^\n]*/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+  const statements = [];
+  let start = 0;
+  let inDollarQuote = false;
+  for (let i = 0; i < stripped.length; i++) {
+    if (inDollarQuote) {
+      if (stripped.slice(i, i + 2) === "$$") {
+        inDollarQuote = false;
+        i += 1;
+      }
+      continue;
+    }
+    if (stripped.slice(i, i + 2) === "$$") {
+      inDollarQuote = true;
+      i += 1;
+      continue;
+    }
+    const match = stripped.slice(i).match(/^\s*;\s*[\r\n]+/);
+    if (match) {
+      const stmt = stripped.slice(start, i).trim();
+      if (stmt.length > 0) statements.push(stmt);
+      start = i + match[0].length;
+      i += match[0].length - 1;
+    }
+  }
+  const tail = stripped.slice(start).trim();
+  if (tail.length > 0) statements.push(tail);
+  return statements;
+}
+
 async function listSqlFiles(dir) {
   try {
     const files = await readdir(dir);
@@ -38,7 +72,8 @@ async function main() {
 
   async function getMigrationEntry(id) {
     const res = await sql.query("SELECT id, checksum FROM schema_migrations WHERE id = $1 LIMIT 1;", [id]);
-    return res.rows?.[0] ?? null;
+    const rows = Array.isArray(res) ? res : (res && res.rows);
+    return rows?.[0] ?? null;
   }
 
   async function recordMigration(id, checksum) {
@@ -57,7 +92,11 @@ async function main() {
       console.log(`skip ${id}`);
       return;
     }
-    await sql.query(content);
+    const statements = splitSqlStatements(content);
+    for (const stmt of statements) {
+      const withSemicolon = stmt.endsWith(";") ? stmt : stmt + ";";
+      await sql.query(withSemicolon);
+    }
     await recordMigration(id, checksum);
     console.log(`applied ${id}`);
   }
